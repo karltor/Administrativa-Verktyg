@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schemakalkylator</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --border-color: #e0e0e0;
+            --primary: #4361ee;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow-y: auto; 
+            padding: 10px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            padding: 20px;
+            width: 100%;
+            max-width: 480px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .header h2 {
+            font-size: 1.2rem;
+            color: var(--primary);
+        }
+
+        .ramtid-control {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .ramtid-control input {
+            width: 55px;
+            padding: 4px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .grid-header {
+            display: grid;
+            grid-template-columns: 50px 1fr 1fr 1fr;
+            gap: 5px;
+            margin-bottom: 5px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #7f8c8d;
+            text-align: center;
+        }
+
+        .day-row {
+            display: grid;
+            grid-template-columns: 50px 1fr 1fr 1fr;
+            gap: 5px;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+
+        .day-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        input[type="time"] {
+            width: 100%;
+            padding: 6px 2px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            text-align: center;
+            font-size: 0.85rem;
+            background-color: #fafafa;
+            transition: border-color 0.2s;
+        }
+
+        input[type="time"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            background-color: #fff;
+        }
+
+        .summary {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            text-align: center;
+        }
+
+        .summary-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+
+        .indicator {
+            font-weight: bold;
+            padding: 8px;
+            border-radius: 6px;
+            color: #fff;
+            background-color: #95a5a6;
+            transition: background-color 0.3s;
+        }
+
+        .btn-copy {
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn-copy:hover {
+            background-color: #324cdd;
+        }
+
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 10px;
+            position: fixed;
+            z-index: 1;
+            bottom: 30px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: opacity 0.3s, bottom 0.3s;
+        }
+
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 50px;
+        }
+
+        @media (max-width: 400px) {
+            .card { padding: 15px; }
+            .grid-header { font-size: 0.65rem; }
+            input[type="time"] { font-size: 0.75rem; padding: 6px 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <div class="header">
+            <h2>Schemakalkylator</h2>
+            <div class="ramtid-control">
+                <label for="percent">Tjänstegrad:</label>
+                <input type="number" id="percent" value="100" min="1" max="100"> %
+            </div>
+        </div>
+
+        <div class="grid-header">
+            <div>Dag</div>
+            <div>Start</div>
+            <div>Slut</div>
+            <div>Lunch (h:m)</div>
+        </div>
+
+        <div id="days-container">
+            </div>
+
+        <div class="summary">
+            <div class="summary-stats">
+                <div>Mål: <strong id="target-hours">35.00 h</strong></div>
+                <div>Inlagt: <strong id="total-hours">0.00 h</strong></div>
+            </div>
+            <div id="indicator" class="indicator">Fyll i dina tider ovan</div>
+        </div>
+
+        <button class="btn-copy" onclick="copyToClipboard()">Kopiera till urklipp</button>
+    </div>
+
+    <div id="toast">Schemat har kopierats!</div>
+
+    <script>
+        const BASE_HOURS = 35; // 100% ramtid
+        const days = [
+            { id: 'mon', name: 'Mån' },
+            { id: 'tue', name: 'Tis' },
+            { id: 'wed', name: 'Ons' },
+            { id: 'thu', name: 'Tor' },
+            { id: 'fri', name: 'Fre' }
+        ];
+
+        // Skapa inmatningsfält för veckodagarna
+        const container = document.getElementById('days-container');
+        days.forEach(day => {
+            const row = document.createElement('div');
+            row.className = 'day-row';
+            row.innerHTML = `
+                <div class="day-label">${day.name}</div>
+                <input type="time" id="start-${day.id}" oninput="calculate()">
+                <input type="time" id="end-${day.id}" oninput="calculate()">
+                <input type="time" id="lunch-${day.id}" value="00:30" oninput="calculate()">
+            `;
+            container.appendChild(row);
+        });
+
+        document.getElementById('percent').addEventListener('input', calculate);
+
+        function timeToDecimal(timeStr) {
+            if (!timeStr) return 0;
+            const parts = timeStr.split(':');
+            return parseInt(parts[0], 10) + (parseInt(parts[1], 10) / 60);
+        }
+
+        function formatHoursMinutes(decimalHours) {
+            let hours = Math.floor(decimalHours);
+            let minutes = Math.round((decimalHours - hours) * 60);
+            
+            // Hantera kanten där minuter rundas till 60
+            if (minutes === 60) {
+                hours += 1;
+                minutes = 0;
+            }
+            return `${hours} timmar och ${minutes} minuter`;
+        }
+
+        function saveData() {
+            const data = { percent: document.getElementById('percent').value, schedule: {} };
+            days.forEach(day => {
+                data.schedule[day.id] = {
+                    start: document.getElementById(`start-${day.id}`).value,
+                    end: document.getElementById(`end-${day.id}`).value,
+                    lunch: document.getElementById(`lunch-${day.id}`).value
+                };
+            });
+            localStorage.setItem('schemakalkylator_data', JSON.stringify(data));
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem('schemakalkylator_data');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    if (data.percent) document.getElementById('percent').value = data.percent;
+                    days.forEach(day => {
+                        if (data.schedule && data.schedule[day.id]) {
+                            const dayData = data.schedule[day.id];
+                            if (dayData.start) document.getElementById(`start-${day.id}`).value = dayData.start;
+                            if (dayData.end) document.getElementById(`end-${day.id}`).value = dayData.end;
+                            if (dayData.lunch !== undefined) document.getElementById(`lunch-${day.id}`).value = dayData.lunch;
+                        }
+                    });
+                } catch (e) {
+                    console.error("Kunde inte ladda sparad data", e);
+                }
+            }
+        }
+
+        function calculate() {
+            const percentInput = document.getElementById('percent').value || 0;
+            const targetHours = BASE_HOURS * (percentInput / 100);
+            let totalHours = 0;
+
+            days.forEach(day => {
+                const start = document.getElementById(`start-${day.id}`).value;
+                const end = document.getElementById(`end-${day.id}`).value;
+                const lunch = document.getElementById(`lunch-${day.id}`).value;
+
+                if (start && end) {
+                    const s = timeToDecimal(start);
+                    let e = timeToDecimal(end);
+                    const l = timeToDecimal(lunch);
+
+                    if (e < s) e += 24; 
+
+                    let dayHours = e - s - l;
+                    if (dayHours > 0) totalHours += dayHours;
+                }
+            });
+
+            // Uppdatera Local Storage
+            saveData();
+
+            // Uppdatera texter
+            document.getElementById('target-hours').innerText = targetHours.toFixed(2) + ' h';
+            document.getElementById('total-hours').innerText = totalHours.toFixed(2) + ' h';
+
+            const diff = totalHours - targetHours;
+            const indicator = document.getElementById('indicator');
+
+            if (totalHours === 0) {
+                indicator.innerText = "Fyll i dina tider ovan";
+                indicator.style.backgroundColor = "#95a5a6";
+            } else if (Math.abs(diff) <= 0.02) {
+                indicator.innerText = "Perfekt! Ramtiden är uppfylld.";
+                indicator.style.backgroundColor = "var(--success)";
+            } else if (diff < 0) {
+                indicator.innerText = `Du saknar ${formatHoursMinutes(Math.abs(diff))}.`;
+                indicator.style.backgroundColor = "var(--danger)";
+            } else {
+                indicator.innerText = `Du har lagt in ${formatHoursMinutes(diff)} för mycket.`;
+                indicator.style.backgroundColor = "var(--warning)";
+            }
+        }
+
+        function copyToClipboard() {
+            let exportText = "";
+            
+            days.forEach(day => {
+                const start = document.getElementById(`start-${day.id}`).value;
+                const end = document.getElementById(`end-${day.id}`).value;
+                
+                if (start && end) {
+                    exportText += `${day.name}dag: ${start} - ${end}\n`;
+                }
+            });
+
+            navigator.clipboard.writeText(exportText.trim()).then(() => {
+                showToast();
+            }).catch(err => {
+                console.error('Kunde inte kopiera:', err);
+                alert("Kunde inte kopiera texten automatiskt.");
+            });
+        }
+
+        function showToast() {
+            const toast = document.getElementById("toast");
+            toast.className = "show";
+            setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+        }
+
+        // Ladda in data från Local Storage och kör första beräkningen
+        loadData();
+        calculate();
+    </script>
+</body>
+</html>
