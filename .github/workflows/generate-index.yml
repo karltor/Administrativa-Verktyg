@@ -1,0 +1,42 @@
+name: Update Index
+on:
+  push:
+    paths:
+      - '*.html'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate Index
+        run: |
+          echo "<!DOCTYPE html><html><head><title>Administrativa Verktyg</title>" > index.html
+          echo "<style>body{font-family:sans-serif;max-width:600px;margin:40px auto;background:#f4f4f9;padding:20px;}" >> index.html
+          echo "h1{color:#333;border-bottom:2px solid #ddd;padding-bottom:10px;}" >> index.html
+          echo "ul{list-style:none;padding:0;} li{margin:10px 0;}" >> index.html
+          echo "a{text-decoration:none;color:#0066cc;font-size:1.1rem;background:#fff;display:block;padding:15px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);transition:0.2s;}" >> index.html
+          echo "a:hover{transform:translateY(-2px);box-shadow:0 4px 8px rgba(0,0,0,0.15);background:#f0f7ff;}</style></head>" >> index.html
+          echo "<body><h1>🛠 Administrativa Verktyg</h1><ul>" >> index.html
+          
+          # Loopa igenom alla html-filer utom index.html
+          for f in *.html; do
+            if [ "$f" != "index.html" ]; then
+              # Snygga till namnet (tar bort .html och ersätter bindestreck med mellanslag)
+              name=$(echo "$f" | sed 's/\.html//' | sed 's/-/ /g' | sed 's/.*/\L&/; s/[a-z]*/\u&/g')
+              echo "<li><a href='./$f'>$name</a></li>" >> index.html
+            fi
+          done
+          
+          echo "</ul></body></html>" >> index.html
+
+      - name: Commit and push if changed
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update index.html" && git push)
