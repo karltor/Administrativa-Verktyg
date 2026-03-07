@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schemaskapare Pro</title>
+    <style>
+        :root {
+            --bg-color: #f4f4f9; --panel-bg: #ffffff; --border-color: #ddd;
+            --primary: #4a90e2; --primary-hover: #357abd;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0; padding: 0; display: flex; height: 100vh;
+            background-color: var(--bg-color); user-select: none;
+        }
+        /* Layout */
+        #sidebar {
+            width: 400px; min-width: 400px; background: var(--panel-bg);
+            border-right: 1px solid var(--border-color); display: flex;
+            flex-direction: column; box-shadow: 2px 0 5px rgba(0,0,0,0.05); z-index: 10;
+        }
+        #preview-container {
+            flex-grow: 1; padding: 20px; display: flex;
+            justify-content: center; align-items: center; overflow: hidden;
+        }
+        canvas {
+            background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            max-width: 100%; max-height: 100%; cursor: default;
+            outline: none;
+        }
+        /* Paneler */
+        .panel { padding: 20px; display: none; flex-direction: column; height: 100%; overflow-y: auto; box-sizing: border-box;}
+        .panel.active { display: flex; }
+        h2 { margin-top: 0; font-size: 1.2rem; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; }
+        
+        /* Formulär och knappar */
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-size: 0.85rem; font-weight: bold; margin-bottom: 4px; color: #555; }
+        input[type="text"], input[type="file"], select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: inherit;}
+        .row { display: flex; gap: 10px; }
+        .row > div { flex: 1; }
+        
+        button {
+            background: var(--primary); color: white; border: none; padding: 10px;
+            border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 5px; transition: background 0.2s;
+        }
+        button:hover { background: var(--primary-hover); }
+        button.secondary { background: #eee; color: #333; }
+        button.secondary:hover { background: #ddd; }
+        button.danger { background: #e74c3c; color: white;}
+        button.danger:hover { background: #c0392b; }
+        button.success { background: #2ecc71; color: white; }
+        button.success:hover { background: #27ae60; }
+        
+        /* Huvudmeny listor */
+        .schedule-file { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #fff; border: 1px solid #ddd; margin-bottom: 10px; border-radius: 4px; }
+        hr { border: 0; border-top: 1px solid var(--border-color); margin: 20px 0; }
+        
+        .hint { font-size: 0.75rem; color: #777; margin-top: 2px; }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <div id="menu-panel" class="panel active">
+            <h2>Mina Scheman</h2>
+            <div id="saved-schedules"></div>
+            <button onclick="createNewSchedule()">+ Skapa Nytt Schema</button>
+            <hr>
+            <div class="form-group">
+                <label>Importera från .txt</label>
+                <input type="file" id="import-file" accept=".txt" onchange="importTxt(event)">
+            </div>
+        </div>
+
+        <div id="editor-panel" class="panel">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <button class="secondary" onclick="goToMenu()" style="margin: 0;">&larr; Tillbaka</button>
+                <h2 style="margin: 0; border: none; padding: 0;" id="editor-title">Redigerar</h2>
+            </div>
+            
+            <div class="form-group">
+                <input type="text" id="schedule-name" placeholder="Schemats namn..." onchange="saveToStorage()">
+            </div>
+
+            <div style="background: #f9f9f9; padding: 15px; border-radius: 4px; border: 1px solid #ddd; margin-bottom: 15px;">
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <label style="margin: 0; font-size: 1rem;" id="form-title">Lägg till lektion</label>
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <input type="color" id="l-color" value="#ffffff" style="width: 32px; height: 32px; padding: 0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer;" title="Färg för denna lektion">
+                        <button id="btn-color-all" onclick="applyColorToSubject()" class="secondary" style="padding: 6px 10px; font-size: 0.75rem; margin: 0; display: none;" title="Använd färgen på alla med samma ämne">Färglägg ämne</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Dag *</label>
+                    <select id="l-day">
+                        <option value="Mon">Måndag</option>
+                        <option value="Tue">Tisdag</option>
+                        <option value="Wed">Onsdag</option>
+                        <option value="Thu">Torsdag</option>
+                        <option value="Fri">Fredag</option>
+                    </select>
+                </div>
+                <div class="row form-group">
+                    <div>
+                        <label>Start *</label>
+                        <input type="text" id="l-start" placeholder="08:00" maxlength="5" onblur="formatTimeInput(this)">
+                    </div>
+                    <div>
+                        <label>Slut *</label>
+                        <input type="text" id="l-end" placeholder="09:00" maxlength="5" onblur="formatTimeInput(this)">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Ämne</label>
+                    <input type="text" id="l-subject" placeholder="T.ex. Matematik" onblur="autoFillDetails()" oninput="updateColorPreview()">
+                </div>
+                <div class="row form-group">
+                    <div>
+                        <label>Lärare/Grupp</label>
+                        <input type="text" id="l-teacher" placeholder="T.ex. AH">
+                    </div>
+                    <div>
+                        <label>Sal</label>
+                        <input type="text" id="l-room" placeholder="T.ex. A201">
+                    </div>
+                </div>
+                <div id="form-actions" style="display: flex; gap: 5px;">
+                    <button id="btn-add" onclick="saveLesson()" style="flex: 1;">Lägg till</button>
+                    <button id="btn-cancel" onclick="clearForm()" class="secondary" style="display:none;">Avbryt</button>
+                </div>
+                <div class="hint">Tips: Dra för att flytta. Ctrl+C/Ctrl+V. Del för att radera. Ctrl+Z ångrar. Drag stannar vid 08:00.</div>
+            </div>
+
+            <hr>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+                <button onclick="exportTxt()">Exportera .txt</button>
+                <button onclick="exportImage('A4')">Export A4 .jpg</button>
+                <button onclick="exportImage('Mobile')" style="grid-column: span 2;">Export Mobil .jpg</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="preview-container">
+        <canvas id="preview-canvas" tabindex="0"></canvas>
+    </div>
+
+<script>
+    // --- KONFIGURATION & FÄRGER ---
+    const pastelPalette = [
+        '#FFB3BA', '#FFDFBA', '#FFFFBA', '#BAFFC9', '#BAE1FF',
+        '#E6E6FA', '#FADADD', '#F5F5DC', '#FFE4E1', '#F0FFF0',
+        '#D4A5A5', '#A5D4D4', '#D4D4A5', '#C9A5D4', '#A5C9D4',
+        '#F0E68C', '#DDA0DD', '#B0E0E6'
+    ];
+    
+    const daysArr = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+    const daysLabels = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre'];
+
+    // --- STATE ---
+    let currentScheduleId = null;
+    let lessons = [];
+    let editingIndex = -1;
+    let historyStack = []; 
+    
+    let canvasBoxes = [];
+    let selectedLessonIndex = -1;
+    let clipboardLesson = null;
+    
+    let isDragging = false;
+    let isResizing = false;
+    let dragStartY = 0;
+    let dragStartMins = 0;
+    let dragEndMins = 0;
+    let mouseX = 0;
+    let mouseY = 0;
+
+    // --- HJÄLPFUNKTIONER ---
+    
+    function saveState() {
+        const currentState = JSON.stringify(lessons);
+        if (historyStack.length === 0 || historyStack[historyStack.length - 1] !== currentState) {
+            historyStack.push(currentState);
+            if(historyStack.length > 30) historyStack.shift(); 
+        }
+    }
+
+    function undo() {
+        if (historyStack.length > 0) {
+            lessons = JSON.parse(historyStack.pop());
+            clearForm();
+            saveToStorage();
+            updateUI();
+        }
+    }
+
+    function getColorForSubject(subject) {
+        if (!subject) return '#ffffff';
+        let hash = 0;
+        for (let i = 0; i < subject.length; i++) {
+            hash = subject.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        // returnerar i versaler för säkerhets skull, matchar hex input
+        return pastelPalette[Math.abs(hash) % pastelPalette.length].toLowerCase();
+    }
+
+    // Ändra färgväljaren live när man skapar en ny lektion
+    function updateColorPreview() {
+        if (editingIndex === -1) { 
+            const subj = document.getElementById('l-subject').value.trim();
+            document.getElementById('l-color').value = getColorForSubject(subj);
+        }
+    }
+
+    // Applicera färg på hela ämnet
+    function applyColorToSubject() {
+        const subj = document.getElementById('l-subject').value.trim();
+        if (!subj) return alert("Du måste ange ett ämne för att ändra färg på alla.");
+        const newColor = document.getElementById('l-color').value;
+        
+        saveState();
+        lessons.forEach(l => {
+            if ((l.subject || '').trim() === subj) {
+                l.color = newColor;
+            }
+        });
+        
+        saveToStorage();
+        updateUI();
+    }
+
+    function timeToMinutes(t) {
+        if(!t) return 0;
+        const [h, m] = t.split(':').map(Number);
+        return (h || 0) * 60 + (m || 0);
+    }
+    
+    function minutesToTime(m) {
+        const h = Math.floor(m / 60).toString().padStart(2, '0');
+        const min = (m % 60).toString().padStart(2, '0');
+        return `${h}:${min}`;
+    }
+
+    function formatTimeInput(el) {
+        let val = el.value.replace(/[^0-9]/g, '');
+        if (val.length >= 3) {
+            val = val.padStart(4, '0');
+            const h = Math.min(23, parseInt(val.substring(0,2)));
+            const m = Math.min(59, parseInt(val.substring(2,4)));
+            el.value = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+        } else if (val.length > 0) {
+            el.value = `${val.padStart(2,'0')}:00`;
+        }
+    }
+
+    function autoFillDetails() {
+        const subj = document.getElementById('l-subject').value.trim().toLowerCase();
+        if(!subj) return;
+        const teacherEl = document.getElementById('l-teacher');
+        const roomEl = document.getElementById('l-room');
+        
+        if(!teacherEl.value && !roomEl.value) {
+            const existing = lessons.slice().reverse().find(l => (l.subject || '').toLowerCase() === subj);
+            if(existing) {
+                teacherEl.value = existing.teacher || '';
+                roomEl.value = existing.room || '';
+            }
+        }
+    }
+
+    // --- NAVIGATION & STORAGE ---
+    function loadSchedulesList() {
+        const container = document.getElementById('saved-schedules');
+        container.innerHTML = '';
+        const schedules = JSON.parse(localStorage.getItem('schedules') || '{}');
+        const keys = Object.keys(schedules);
+        
+        if(keys.length === 0) {
+            container.innerHTML = '<p style="font-size: 0.9rem; color: #777;">Inga sparade scheman hittades.</p>';
+            return;
+        }
+
+        keys.forEach(id => {
+            const div = document.createElement('div');
+            div.className = 'schedule-file';
+            div.innerHTML = `
+                <span>${schedules[id].name || 'Namnlöst'}</span>
+                <div>
+                    <button class="secondary" onclick="openSchedule('${id}')">Öppna</button>
+                    <button class="danger" onclick="deleteSchedule('${id}')">X</button>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function createNewSchedule() {
+        currentScheduleId = 'sched_' + Date.now();
+        lessons = [];
+        historyStack = [];
+        clearForm();
+        document.getElementById('schedule-name').value = 'Nytt Schema';
+        saveToStorage();
+        showEditor();
+        updateUI();
+    }
+
+    function openSchedule(id) {
+        const schedules = JSON.parse(localStorage.getItem('schedules') || '{}');
+        if(schedules[id]) {
+            currentScheduleId = id;
+            lessons = schedules[id].lessons || [];
+            historyStack = [];
+            document.getElementById('schedule-name').value = schedules[id].name || '';
+            clearForm();
+            showEditor();
+            updateUI();
+        }
+    }
+
+    function deleteSchedule(id) {
+        if(confirm("Radera schemat?")) {
+            const schedules = JSON.parse(localStorage.getItem('schedules') || '{}');
+            delete schedules[id];
+            localStorage.setItem('schedules', JSON.stringify(schedules));
+            loadSchedulesList();
+        }
+    }
+
+    function saveToStorage() {
+        if(!currentScheduleId) return;
+        const name = document.getElementById('schedule-name').value || 'Namnlöst';
+        const schedules = JSON.parse(localStorage.getItem('schedules') || '{}');
+        schedules[currentScheduleId] = { name, lessons };
+        localStorage.setItem('schedules', JSON.stringify(schedules));
+    }
+
+    function goToMenu() {
+        document.getElementById('editor-panel').classList.remove('active');
+        document.getElementById('menu-panel').classList.add('active');
+        loadSchedulesList();
+        const canvas = document.getElementById('preview-canvas');
+        canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function showEditor() {
+        document.getElementById('menu-panel').classList.remove('active');
+        document.getElementById('editor-panel').classList.add('active');
+    }
+
+    // --- LEKTIONSHANTERING (FORMULÄR) ---
+    function saveLesson() {
+        saveState(); 
+
+        const day = document.getElementById('l-day').value;
+        const start = document.getElementById('l-start').value;
+        const end = document.getElementById('l-end').value;
+        const subject = document.getElementById('l-subject').value.trim();
+        const teacher = document.getElementById('l-teacher').value.trim();
+        const room = document.getElementById('l-room').value.trim();
+        const color = document.getElementById('l-color').value;
+
+        if(!start || !end || start.length < 5 || end.length < 5) {
+            alert("Ogiltig Start- eller Sluttid!");
+            return;
+        }
+
+        const newLesson = { day, start, end, subject, teacher, room, color };
+
+        if(editingIndex >= 0) {
+            lessons[editingIndex] = newLesson;
+        } else {
+            lessons.push(newLesson);
+        }
+        
+        clearForm();
+        saveToStorage();
+        updateUI();
+    }
+
+    function editLesson(index) {
+        editingIndex = index;
+        selectedLessonIndex = index;
+        const l = lessons[index];
+        document.getElementById('l-day').value = l.day;
+        document.getElementById('l-start').value = l.start;
+        document.getElementById('l-end').value = l.end;
+        document.getElementById('l-subject').value = l.subject || '';
+        document.getElementById('l-teacher').value = l.teacher || '';
+        document.getElementById('l-room').value = l.room || '';
+        
+        // Hämta sparad färg eller generera fallback
+        document.getElementById('l-color').value = l.color || getColorForSubject(l.subject);
+        
+        document.getElementById('form-title').innerText = "Redigera lektion";
+        const btnAdd = document.getElementById('btn-add');
+        btnAdd.innerText = "Uppdatera";
+        btnAdd.className = "success";
+        document.getElementById('btn-cancel').style.display = 'block';
+        document.getElementById('btn-color-all').style.display = l.subject ? 'block' : 'none'; // Visa knapp om ämne finns
+        updateUI();
+    }
+
+    function clearForm() {
+        editingIndex = -1;
+        selectedLessonIndex = -1;
+        document.getElementById('l-start').value = '';
+        document.getElementById('l-end').value = '';
+        document.getElementById('l-subject').value = '';
+        document.getElementById('l-teacher').value = '';
+        document.getElementById('l-room').value = '';
+        document.getElementById('l-color').value = '#ffffff'; 
+        
+        document.getElementById('form-title').innerText = "Lägg till lektion";
+        const btnAdd = document.getElementById('btn-add');
+        btnAdd.innerText = "Lägg till";
+        btnAdd.className = "";
+        document.getElementById('btn-cancel').style.display = 'none';
+        document.getElementById('btn-color-all').style.display = 'none';
+        updateUI();
+    }
+
+    function deleteSelectedLesson() {
+        if(selectedLessonIndex >= 0) {
+            saveState(); 
+            lessons.splice(selectedLessonIndex, 1);
+            clearForm();
+            saveToStorage();
+            updateUI();
+        }
+    }
+
+    function updateUI() {
+        lessons.sort((a, b) => {
+            if (daysArr.indexOf(a.day) !== daysArr.indexOf(b.day)) return daysArr.indexOf(a.day) - daysArr.indexOf(b.day);
+            return timeToMinutes(a.start) - timeToMinutes(b.start);
+        });
+        drawSchedule();
+    }
+
+    // --- CANVAS RITNING & KOLLISIONSHANTERING ---
+    function calculateLayoutGroups(lessonList) {
+        const layoutData = [];
+        daysArr.forEach(day => {
+            const dayLessons = lessonList.map((l, i) => ({...l, originalIndex: i}))
+                                         .filter(l => l.day === day)
+                                         .map(l => ({
+                                            ...l, 
+                                            startM: timeToMinutes(l.start), 
+                                            endM: timeToMinutes(l.end) 
+                                         }));
+            
+            let columns = [];
+            dayLessons.forEach(ev => {
+                let placed = false;
+                for(let i=0; i<columns.length; i++) {
+                    let overlap = columns[i].some(c => ev.startM < c.endM && ev.endM > c.startM);
+                    if(!overlap) {
+                        columns[i].push(ev);
+                        ev.colIdx = i;
+                        placed = true;
+                        break;
+                    }
+                }
+                if(!placed) {
+                    ev.colIdx = columns.length;
+                    columns.push([ev]);
+                }
+            });
+
+            dayLessons.forEach(ev => {
+                let maxColsOverlap = 1;
+                for(let i=0; i<columns.length; i++) {
+                    if (columns[i].some(c => ev.startM < c.endM && ev.endM > c.startM)) {
+                        maxColsOverlap = Math.max(maxColsOverlap, i + 1);
+                    }
+                }
+                ev.maxCols = maxColsOverlap;
+                layoutData.push(ev);
+            });
+        });
+        return layoutData;
+    }
+
+    let currentDrawMetrics = null;
+
+    function renderOnCanvas(canvas, options = {}) {
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+        const isExport = options.isExport || false;
+        
+        const leftMargin = width * (options.left || 0.08);
+        const rightMargin = width * (options.right || 0.05);
+        const topMargin = height * (options.top || 0.06);
+        const bottomMargin = height * (options.bottom || 0.05);
+
+        const drawWidth = width - leftMargin - rightMargin;
+        const drawHeight = height - topMargin - bottomMargin;
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, width, height);
+
+        if (lessons.length === 0 && !isExport) {
+            ctx.fillStyle = '#aaa';
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Inga lektioner. Lägg till i panelen eller Ctrl+V.', width/2, height/2);
+            return;
+        }
+
+        let minTime = 8 * 60; 
+        let maxTime = 16 * 60; 
+        if(lessons.length > 0) {
+            lessons.forEach(l => {
+                const s = timeToMinutes(l.start);
+                const e = timeToMinutes(l.end);
+                if (s < minTime) minTime = s;
+                if (e > maxTime) maxTime = e;
+            });
+        }
+        minTime = Math.floor(minTime / 60) * 60; 
+        maxTime = Math.ceil(maxTime / 60) * 60;  
+        const totalMinutes = Math.max(60, maxTime - minTime);
+
+        if(!isExport) {
+            currentDrawMetrics = { topMargin, leftMargin, drawWidth, drawHeight, minTime, totalMinutes };
+            canvasBoxes = []; 
+        }
+
+        const colWidth = drawWidth / 5;
+        ctx.strokeStyle = '#eaeaea'; ctx.lineWidth = 1;
+
+        ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#555';
+        
+        const axisFontSize = isExport ? Math.floor(height * 0.018) : 12;
+        ctx.font = `${axisFontSize}px Arial`;
+
+        for(let m = 0; m <= totalMinutes; m += 30) {
+            const y = topMargin + (m / totalMinutes) * drawHeight;
+            ctx.beginPath(); ctx.moveTo(leftMargin, y); ctx.lineTo(leftMargin + drawWidth, y); ctx.stroke();
+            if(m % 60 === 0 || totalMinutes < 300) { 
+                ctx.fillText(minutesToTime(minTime + m), leftMargin - 10, y);
+            }
+        }
+
+        ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        const dayFontSize = isExport ? Math.floor(height * 0.02) : 14;
+        
+        for(let i = 0; i <= 5; i++) {
+            const x = leftMargin + i * colWidth;
+            ctx.beginPath(); ctx.moveTo(x, topMargin); ctx.lineTo(x, topMargin + drawHeight); ctx.stroke();
+            if (i < 5) {
+                ctx.fillStyle = '#333'; ctx.font = `bold ${dayFontSize}px Arial`;
+                ctx.fillText(daysLabels[i], x + colWidth/2, topMargin - 10);
+            }
+        }
+
+        const layoutEvents = calculateLayoutGroups(lessons);
+        
+        layoutEvents.forEach(ev => {
+            const dayIdx = daysArr.indexOf(ev.day);
+            const blockWidth = colWidth / ev.maxCols;
+            const x = leftMargin + (dayIdx * colWidth) + (ev.colIdx * blockWidth);
+            const y = topMargin + ((ev.startM - minTime) / totalMinutes) * drawHeight;
+            const h = ((ev.endM - ev.startM) / totalMinutes) * drawHeight;
+            
+            if(!isExport) {
+                canvasBoxes.push({
+                    originalIndex: ev.originalIndex,
+                    x: x, y: y, w: blockWidth, h: h,
+                    bottomY: y + h
+                });
+            }
+
+            // Fyllning & Ram (Kollar efter custom färg)
+            ctx.fillStyle = ev.color || getColorForSubject(ev.subject);
+            ctx.fillRect(x, y, blockWidth, h);
+            
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = (ev.originalIndex === selectedLessonIndex && !isExport) ? '#2980b9' : '#555';
+            if(ev.originalIndex === selectedLessonIndex && !isExport) {
+                ctx.lineWidth = 3; 
+            }
+            ctx.strokeRect(x, y, blockWidth, h);
+
+            // Texthantering
+            const padding = isExport ? Math.floor(width*0.005) : 4;
+            const textMaxWidth = blockWidth - (padding * 2);
+            
+            let fontSizeTime = isExport ? Math.floor(width * 0.015) : 10;
+            let fontSizeText = isExport ? Math.floor(width * 0.024) : 13;
+            
+            if(h < fontSizeTime * 3) { fontSizeTime = h * 0.3; fontSizeText = h * 0.35; }
+
+            ctx.fillStyle = '#000';
+            
+            ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.font = `${fontSizeTime}px Arial`;
+            ctx.fillText(ev.start, x + padding, y + padding);
+
+            ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+            ctx.fillText(ev.end, x + blockWidth - padding, y + h - padding);
+
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            
+            const linesToDraw = [];
+            
+            function processTextLine(text, isBold) {
+                if(!text) return;
+                ctx.font = isBold ? `bold ${fontSizeText}px Arial` : `normal ${fontSizeText * 0.9}px Arial`;
+                
+                const words = text.split(' ');
+                let currentLine = '';
+                
+                words.forEach(word => {
+                    const testLine = currentLine ? currentLine + ' ' + word : word;
+                    if(ctx.measureText(testLine).width > textMaxWidth && currentLine !== '') {
+                        linesToDraw.push({ text: currentLine, isBold });
+                        currentLine = word;
+                    } else {
+                        currentLine = testLine;
+                    }
+                });
+                
+                while(currentLine && ctx.measureText(currentLine).width > textMaxWidth && currentLine.length > 2) {
+                     let breakIdx = currentLine.length;
+                     while(breakIdx > 1 && ctx.measureText(currentLine.substring(0, breakIdx) + '-').width > textMaxWidth) {
+                         breakIdx--;
+                     }
+                     linesToDraw.push({ text: currentLine.substring(0, breakIdx) + '-', isBold });
+                     currentLine = currentLine.substring(breakIdx);
+                }
+                
+                if(currentLine) linesToDraw.push({ text: currentLine, isBold });
+            }
+
+            processTextLine(ev.subject, true);
+            processTextLine(ev.teacher, false);
+            processTextLine(ev.room, false);
+
+            const lineHeight = fontSizeText * 1.2;
+            const totalTextHeight = linesToDraw.length * lineHeight;
+            let startY = y + (h / 2) - (totalTextHeight / 2) + (lineHeight / 2);
+
+            linesToDraw.forEach(item => {
+                ctx.font = item.isBold ? `bold ${fontSizeText}px Arial` : `normal ${fontSizeText * 0.9}px Arial`;
+                ctx.fillText(item.text, x + blockWidth/2, startY);
+                startY += lineHeight;
+            });
+        });
+    }
+
+    function drawSchedule() {
+        const canvas = document.getElementById('preview-canvas');
+        canvas.width = canvas.parentElement.clientWidth * 0.95;
+        canvas.height = canvas.parentElement.clientHeight * 0.95;
+        renderOnCanvas(canvas);
+    }
+
+    // --- CANVAS INTERAKTION ---
+    const canvas = document.getElementById('preview-canvas');
+
+    function getMousePos(evt) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+            x: (evt.clientX - rect.left) * (canvas.width / rect.width),
+            y: (evt.clientY - rect.top) * (canvas.height / rect.height)
+        };
+    }
+
+    function getHoveredLesson(x, y) {
+        for (let i = canvasBoxes.length - 1; i >= 0; i--) {
+            const b = canvasBoxes[i];
+            if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) {
+                const isBottomEdge = (y >= b.bottomY - 10 && y <= b.bottomY + 10);
+                return { index: b.originalIndex, isBottomEdge };
+            }
+        }
+        return null;
+    }
+
+    function getTimeFromY(y) {
+        if(!currentDrawMetrics) return 0;
+        const { topMargin, drawHeight, minTime, totalMinutes } = currentDrawMetrics;
+        const ratio = (y - topMargin) / drawHeight;
+        let mins = minTime + (ratio * totalMinutes);
+        return Math.max(0, Math.round(mins / 5) * 5);
+    }
+
+    function getDayFromX(x) {
+        if(!currentDrawMetrics) return null;
+        const { leftMargin, drawWidth } = currentDrawMetrics;
+        const colWidth = drawWidth / 5;
+        const colIdx = Math.floor((x - leftMargin) / colWidth);
+        if(colIdx >= 0 && colIdx < 5) return daysArr[colIdx];
+        return null;
+    }
+
+    canvas.addEventListener('mousemove', (e) => {
+        const pos = getMousePos(e);
+        mouseX = pos.x; mouseY = pos.y; 
+        
+        if (isDragging || isResizing) {
+            const currentMins = getTimeFromY(pos.y);
+            const deltaMins = currentMins - dragStartMins;
+            const l = lessons[selectedLessonIndex];
+            
+            if (isResizing) {
+                let newEnd = dragEndMins + deltaMins;
+                if(newEnd <= timeToMinutes(l.start) + 15) newEnd = timeToMinutes(l.start) + 15;
+                l.end = minutesToTime(newEnd);
+            } else if (isDragging) {
+                const dur = dragEndMins - dragStartMins;
+                let newStart = dragStartMins + deltaMins;
+                
+                // NYTT: Lås drag till att aldrig gå före 08:00 (480 minuter)
+                if (newStart < 480) newStart = 480;
+                
+                const hoverDay = getDayFromX(pos.x);
+                if (hoverDay && l.day !== hoverDay) l.day = hoverDay;
+                
+                l.start = minutesToTime(newStart);
+                l.end = minutesToTime(newStart + dur);
+            }
+            drawSchedule();
+            return;
+        }
+
+        const hovered = getHoveredLesson(pos.x, pos.y);
+        if (hovered) {
+            canvas.style.cursor = hovered.isBottomEdge ? 'ns-resize' : 'grab';
+        } else {
+            canvas.style.cursor = 'default';
+        }
+    });
+
+    canvas.addEventListener('mousedown', (e) => {
+        const pos = getMousePos(e);
+        const hovered = getHoveredLesson(pos.x, pos.y);
+        
+        if (hovered) {
+            saveState(); 
+            
+            canvas.focus();
+            editLesson(hovered.index); 
+            
+            const l = lessons[selectedLessonIndex];
+            dragStartY = pos.y;
+            dragStartMins = timeToMinutes(l.start);
+            dragEndMins = timeToMinutes(l.end);
+            
+            if (hovered.isBottomEdge) {
+                isResizing = true;
+            } else {
+                isDragging = true;
+                canvas.style.cursor = 'grabbing';
+            }
+        } else {
+            clearForm(); 
+        }
+    });
+
+    canvas.addEventListener('mouseup', () => {
+        if (isDragging || isResizing) {
+            isDragging = false;
+            isResizing = false;
+            canvas.style.cursor = 'default';
+            if(selectedLessonIndex >= 0) {
+                editLesson(selectedLessonIndex);
+                saveToStorage();
+            }
+        }
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+        if(isDragging || isResizing) {
+            isDragging = false; isResizing = false; drawSchedule();
+        }
+    });
+
+    window.addEventListener('keydown', (e) => {
+        if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT') {
+            return; 
+        }
+
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+            deleteSelectedLesson();
+        } else if (e.ctrlKey && e.key.toLowerCase() === 'c') {
+            if (selectedLessonIndex >= 0) {
+                clipboardLesson = {...lessons[selectedLessonIndex]};
+            }
+        } else if (e.ctrlKey && e.key.toLowerCase() === 'v') {
+            if (clipboardLesson) {
+                const targetDay = getDayFromX(mouseX);
+                let targetTimeMins = getTimeFromY(mouseY);
+                if (targetTimeMins < 480) targetTimeMins = 480; // Klistra inte in före 08:00
+                
+                if (targetDay) {
+                    saveState(); 
+                    const dur = timeToMinutes(clipboardLesson.end) - timeToMinutes(clipboardLesson.start);
+                    const newLesson = {
+                        ...clipboardLesson,
+                        day: targetDay,
+                        start: minutesToTime(targetTimeMins),
+                        end: minutesToTime(targetTimeMins + dur)
+                    };
+                    lessons.push(newLesson);
+                    saveToStorage();
+                    updateUI();
+                }
+            }
+        } else if (e.ctrlKey && e.key.toLowerCase() === 'z') {
+            undo();
+        }
+    });
+
+    // --- EXPORT & IMPORT ---
+    function exportTxt() {
+        if(lessons.length === 0) return alert("Det finns inga lektioner att exportera.");
+        let content = "";
+        lessons.forEach(l => {
+            // Expoterar numera med en 6:e färg-kolumn
+            content += `${l.day};${l.start}-${l.end};${l.subject || ''};${l.teacher || ''};${l.room || ''};${l.color || ''}\n`;
+        });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }));
+        a.download = `${document.getElementById('schedule-name').value || 'schema'}.txt`;
+        a.click();
+    }
+
+    function importTxt(event) {
+        const file = event.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            saveState(); 
+            createNewSchedule();
+            document.getElementById('schedule-name').value = file.name.replace('.txt', '');
+            e.target.result.split('\n').forEach(line => {
+                const p = line.trim().split(';');
+                if(p.length >= 2) {
+                    const t = p[1].split('-');
+                    if(t.length === 2) {
+                        lessons.push({ 
+                            day: p[0], start: t[0], end: t[1], 
+                            subject: p[2]||'', teacher: p[3]||'', room: p[4]||'',
+                            color: p[5]||'' // Tillåter både gamla (5) och nya (6) filstrukturer
+                        });
+                    }
+                }
+            });
+            saveToStorage(); updateUI();
+        };
+        reader.readAsText(file);
+        event.target.value = '';
+    }
+
+    function exportImage(type) {
+        if(lessons.length === 0) return alert("Lägg till lektioner först!");
+        const exportCanvas = document.createElement('canvas');
+        
+        if (type === 'A4') {
+            exportCanvas.width = 2480; exportCanvas.height = 3508; 
+            renderOnCanvas(exportCanvas, { isExport: true, left: 0.1, right: 0.05, top: 0.05, bottom: 0.05 });
+        } else if (type === 'Mobile') {
+            exportCanvas.width = 1080; exportCanvas.height = 1920;
+            renderOnCanvas(exportCanvas, { isExport: true, left: 0.12, right: 0.05, top: 0.06, bottom: 0.06 });
+        }
+
+        const a = document.createElement('a');
+        a.href = exportCanvas.toDataURL('image/jpeg', 0.9);
+        a.download = `${document.getElementById('schedule-name').value || 'schema'}_${type.toLowerCase()}.jpg`;
+        a.click();
+    }
+
+    // --- INIT ---
+    window.addEventListener('resize', () => { if (document.getElementById('editor-panel').classList.contains('active')) drawSchedule(); });
+    loadSchedulesList();
+
+</script>
+</body>
+</html>
