@@ -29,7 +29,7 @@
 
         .app-container {
             width: 100%;
-            max-width: 800px;
+            max-width: 1000px; /* Ökad bredd för att rymma två kolumner */
             padding: 40px 20px;
         }
 
@@ -53,6 +53,9 @@
             text-align: center;
             box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
             margin-bottom: 40px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
         }
         .new-class-card:hover { border-color: var(--accent); transform: translateY(-4px); }
         .new-class-card h2 { margin: 0 0 10px 0; color: var(--accent); }
@@ -97,8 +100,28 @@
         .btn-success { background: var(--success); color: white; width: 100%; justify-content: center; font-size: 1.2rem; margin-top: 15px;}
         .btn-success:hover { filter: brightness(0.95); }
 
+        /* Grid Layouts */
+        .edit-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        /* Desktop Layout (Två kolumner) */
+        @media (min-width: 768px) {
+            .edit-layout {
+                grid-template-columns: 1fr 1.5fr; /* Vänster 40%, Höger 60% */
+                gap: 40px;
+                align-items: start;
+            }
+            textarea#rawNamesInput {
+                height: calc(100vh - 300px); /* Gör textrutan hög på datorn */
+                min-height: 400px;
+            }
+        }
+
         /* Student Chips */
-        .student-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin: 15px 0 30px 0; }
+        .student-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin: 15px 0 30px 0; }
         .chip {
             background: #e2e8f0;
             color: var(--text);
@@ -127,7 +150,7 @@
         .group-card li { padding: 8px 0; border-bottom: 1px solid var(--border); }
         .group-card li:last-child { border: none; padding-bottom: 0; }
 
-        .back-nav { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .back-nav { margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
         .settings-box { background: var(--card-bg); padding: 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgb(0 0 0 / 0.1); }
         label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9rem; color: var(--text-dim); }
         
@@ -160,37 +183,42 @@
             <button class="btn btn-danger" onclick="deleteCurrentList()">Radera klass</button>
         </div>
         
-        <input type="text" id="classNameInput" placeholder="Klassens namn (t.ex. 9F)" onblur="handleNameChange(this.value)">
-        
-        <textarea id="rawNamesInput" placeholder="Skriv eller klistra in namn här... (separera med radbrytning eller kommatecken)" oninput="parseNames()"></textarea>
+        <div class="edit-layout">
+            <div class="edit-left">
+                <input type="text" id="classNameInput" placeholder="Klassens namn (t.ex. 9F)" onblur="handleNameChange(this.value)">
+                <textarea id="rawNamesInput" placeholder="Skriv eller klistra in namn här... (separera med radbrytning eller kommatecken)" oninput="parseNames()"></textarea>
+            </div>
 
-        <div style="margin-top: 20px;">
-            <h3>Deltagare (<span id="active-count">0</span> närvarande)</h3>
-            <p style="color: var(--text-dim); font-size: 0.85rem; margin-top: -10px;">Klicka på en elev för att markera som frånvarande (stryks över).</p>
-            <div id="student-grid" class="student-grid"></div>
-        </div>
-
-        <div class="settings-box">
-            <div style="display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;">
-                <div style="flex: 1; min-width: 150px;">
-                    <label>Elever per grupp</label>
-                    <input type="number" id="groupSize" value="4" min="2">
+            <div class="edit-right">
+                <div>
+                    <h3 style="margin-top: 0;">Deltagare (<span id="active-count">0</span> närvarande)</h3>
+                    <p style="color: var(--text-dim); font-size: 0.85rem; margin-top: -10px;">Klicka på en elev för att markera som frånvarande (stryks över).</p>
+                    <div id="student-grid" class="student-grid"></div>
                 </div>
-                <div style="flex: 2; min-width: 200px;">
-                    <label>Fördelningslogik</label>
-                    <select id="logicMode">
-                        <option value="balanced">Balanserad (t.ex. 3, 3, 3, 4, 4)</option>
-                        <option value="overfill">Fyll upp (t.ex. 4, 4, 4, 4, 1)</option>
-                    </select>
+
+                <div class="settings-box">
+                    <div style="display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 150px;">
+                            <label>Elever per grupp</label>
+                            <input type="number" id="groupSize" value="4" min="2">
+                        </div>
+                        <div style="flex: 2; min-width: 200px;">
+                            <label>Fördelningslogik</label>
+                            <select id="logicMode">
+                                <option value="balanced">Balanserad (t.ex. 3, 3, 3, 4, 4)</option>
+                                <option value="overfill">Fyll upp (t.ex. 4, 4, 4, 4, 1)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="useRandomNames">
+                        Använd roliga lagnamn (Stormen, Rävarna etc.)
+                    </label>
+
+                    <button class="btn btn-success" onclick="generateGroups()">SLUMPA GRUPPER</button>
                 </div>
             </div>
-            
-            <label class="checkbox-label">
-                <input type="checkbox" id="useRandomNames">
-                Använd roliga lagnamn (Stormen, Rävarna etc.)
-            </label>
-
-            <button class="btn btn-success" onclick="generateGroups()">SLUMPA GRUPPER</button>
         </div>
     </div>
 
@@ -230,9 +258,8 @@
 
     function handleNameChange(newName) {
         const trimmedName = newName.trim();
-        if (!trimmedName) return; // Spara inte om det är tomt
+        if (!trimmedName) return; 
         
-        // Om namnet har ändrats, radera den gamla sparfilen för att undvika dubbletter
         if (currentClass.name && currentClass.name !== trimmedName && db[currentClass.name]) {
             delete db[currentClass.name];
         }
@@ -245,7 +272,6 @@
         const input = document.getElementById('rawNamesInput').value;
         const names = input.split(/[\n,]+/).map(n => n.trim()).filter(n => n !== "");
         
-        // Behåll aktiv/inaktiv-status på befintliga namn
         const newStudents = names.map(name => {
             const existing = currentClass.students.find(s => s.name === name);
             return existing ? existing : { name, active: true };
@@ -284,7 +310,6 @@
 
     function autoSave() {
         const className = document.getElementById('classNameInput').value.trim();
-        // Spara bara om det faktiskt finns ett namn eller elever inlagda
         if (className || currentClass.students.length > 0) {
             const saveName = className || "Ofrälst klass";
             currentClass.name = saveName;
@@ -297,7 +322,7 @@
         const container = document.getElementById('saved-lists-container');
         container.innerHTML = "";
         
-        const keys = Object.keys(db).filter(k => db[k].length > 0); // Visa inte helt tomma spök-klasser
+        const keys = Object.keys(db).filter(k => db[k].length > 0); 
         
         if(keys.length === 0) {
             container.innerHTML = "<p style='color: var(--text-dim);'>Du har inga sparade klasser ännu.</p>";
@@ -336,7 +361,6 @@
         const activeNames = currentClass.students.filter(s => s.active).map(s => s.name);
         if (activeNames.length === 0) return alert("Inga elever är markerade som närvarande!");
 
-        // Kopiera listan och blanda eleverna
         let shuffledStudents = [...activeNames];
         for (let i = shuffledStudents.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -348,7 +372,6 @@
         const total = shuffledStudents.length;
         let sizes = [];
 
-        // Räkna ut gruppstorlekar
         if (mode === 'overfill') {
             for (let i = 0; i < total; i += targetSize) {
                 sizes.push(Math.min(targetSize, total - i));
@@ -361,10 +384,9 @@
                 sizes.push(baseSize + (remainder > 0 ? 1 : 0));
                 remainder--;
             }
-            sizes.sort((a,b) => b - a); // Största grupperna först
+            sizes.sort((a,b) => b - a); 
         }
 
-        // Blanda lagnamn om rutan är ikryssad
         const useRandomNames = document.getElementById('useRandomNames').checked;
         let shuffledNames = [...roligaLagnamn];
         if (useRandomNames) {
@@ -378,7 +400,6 @@
         grid.innerHTML = "";
         let currentPos = 0;
 
-        // Bygg korten
         sizes.forEach((size, i) => {
             const group = shuffledStudents.slice(currentPos, currentPos + size);
             currentPos += size;
