@@ -29,7 +29,7 @@
 
         .app-container {
             width: 100%;
-            max-width: 1000px; /* Ökad bredd för att rymma två kolumner */
+            max-width: 1000px;
             padding: 40px 20px;
         }
 
@@ -107,15 +107,14 @@
             gap: 20px;
         }
 
-        /* Desktop Layout (Två kolumner) */
         @media (min-width: 768px) {
             .edit-layout {
-                grid-template-columns: 1fr 1.5fr; /* Vänster 40%, Höger 60% */
+                grid-template-columns: 1fr 1.5fr; 
                 gap: 40px;
                 align-items: start;
             }
             textarea#rawNamesInput {
-                height: calc(100vh - 300px); /* Gör textrutan hög på datorn */
+                height: calc(100vh - 300px); 
                 min-height: 400px;
             }
         }
@@ -136,7 +135,7 @@
         .chip:hover { filter: brightness(0.95); }
         .chip.inactive { opacity: 0.5; background: #cbd5e1; color: var(--text-dim); text-decoration: line-through; }
         
-        /* Result Cards */
+        /* Result Cards & Drag and Drop */
         .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
         .group-card {
             background: var(--card-bg);
@@ -144,11 +143,45 @@
             padding: 20px;
             border-top: 5px solid var(--accent);
             box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            display: flex;
+            flex-direction: column;
         }
         .group-card h3 { margin-top: 0; font-size: 1.1rem; color: var(--accent); margin-bottom: 15px; }
-        .group-card ul { list-style: none; padding: 0; margin: 0; }
-        .group-card li { padding: 8px 0; border-bottom: 1px solid var(--border); }
-        .group-card li:last-child { border: none; padding-bottom: 0; }
+        
+        /* Drop zone styles */
+        .drop-zone { 
+            list-style: none; 
+            padding: 0; 
+            margin: 0; 
+            min-height: 50px; /* Gör att man kan droppa i tomma grupper */
+            flex-grow: 1;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+        
+        .drop-zone.drag-over {
+            background-color: #f1f5f9;
+        }
+
+        /* Draggable student styles */
+        .draggable-student { 
+            padding: 8px 10px; 
+            border-bottom: 1px solid var(--border);
+            cursor: grab;
+            background-color: var(--card-bg);
+            border-radius: 4px;
+            margin-bottom: 2px;
+            transition: transform 0.1s;
+        }
+        .draggable-student:active { cursor: grabbing; }
+        .draggable-student:last-child { border-bottom: none; }
+        
+        /* När ett element dras */
+        .draggable-student.dragging {
+            opacity: 0.5;
+            background-color: #e2e8f0;
+            transform: scale(0.98);
+        }
 
         .back-nav { margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
         .settings-box { background: var(--card-bg); padding: 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgb(0 0 0 / 0.1); }
@@ -228,6 +261,7 @@
             <button class="btn btn-primary" onclick="generateGroups()">Slumpa igen</button>
         </div>
         <h1 id="result-title">Färdiga grupper</h1>
+        <p style="text-align: center; color: var(--text-dim); margin-top: -1.5rem; margin-bottom: 2rem;">Dra och släpp elever för att byta grupp</p>
         <div id="results-grid" class="results-grid"></div>
     </div>
 
@@ -408,11 +442,74 @@
             
             const card = document.createElement('div');
             card.className = 'group-card';
-            card.innerHTML = `<h3>${groupTitle}</h3><ul>${group.map(n => `<li>${n}</li>`).join('')}</ul>`;
+            
+            // Uppdaterat för drag-and-drop: klassen 'drop-zone' på ul, 'draggable-student' och 'draggable="true"' på li
+            card.innerHTML = `
+                <h3>${groupTitle}</h3>
+                <ul class="drop-zone">
+                    ${group.map(n => `<li draggable="true" class="draggable-student">${n}</li>`).join('')}
+                </ul>
+            `;
             grid.appendChild(card);
         });
 
+        setupDragAndDrop(); // Aktiverar logiken direkt när grupperna har skapats
         showView('view-results');
+    }
+
+    // --- Drag and Drop Logik ---
+    function setupDragAndDrop() {
+        const draggables = document.querySelectorAll('.draggable-student');
+        const dropZones = document.querySelectorAll('.drop-zone');
+
+        draggables.forEach(draggable => {
+            draggable.addEventListener('dragstart', () => {
+                draggable.classList.add('dragging');
+            });
+
+            draggable.addEventListener('dragend', () => {
+                draggable.classList.remove('dragging');
+            });
+        });
+
+        dropZones.forEach(zone => {
+            zone.addEventListener('dragover', e => {
+                e.preventDefault(); // Detta tillåter släpp
+                zone.classList.add('drag-over');
+                
+                const afterElement = getDragAfterElement(zone, e.clientY);
+                const draggable = document.querySelector('.dragging');
+                
+                if (afterElement == null) {
+                    zone.appendChild(draggable);
+                } else {
+                    zone.insertBefore(draggable, afterElement);
+                }
+            });
+
+            zone.addEventListener('dragleave', () => {
+                zone.classList.remove('drag-over');
+            });
+
+            zone.addEventListener('drop', () => {
+                zone.classList.remove('drag-over');
+            });
+        });
+    }
+
+    // Beräknar var i listan elementet ska släppas
+    function getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll('.draggable-student:not(.dragging)')];
+
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
     }
 </script>
 </body>
