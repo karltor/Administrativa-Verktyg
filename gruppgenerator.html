@@ -6,14 +6,15 @@
     <title>Gruppslumparen Pro</title>
     <style>
         :root {
-            --accent: #6366f1;
-            --accent-hover: #4f46e5;
-            --bg: #0f172a;
-            --card-bg: #1e293b;
-            --text: #f8fafc;
-            --text-dim: #94a3b8;
+            --accent: #4f46e5;
+            --accent-hover: #4338ca;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #0f172a;
+            --text-dim: #64748b;
             --danger: #ef4444;
-            --success: #22c55e;
+            --success: #10b981;
+            --border: #e2e8f0;
         }
 
         body {
@@ -38,34 +39,43 @@
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        h1 { font-size: 2.5rem; margin-bottom: 2rem; text-align: center; font-weight: 800; letter-spacing: -0.025em; }
+        h1 { font-size: 2.5rem; margin-bottom: 2rem; text-align: center; font-weight: 800; letter-spacing: -0.025em; color: var(--text); }
+        h2, h3 { color: var(--text); }
         
-        /* Splash Screen Cards */
-        .grid-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .menu-card {
+        /* Menu */
+        .new-class-card {
             background: var(--card-bg);
             padding: 30px;
             border-radius: 16px;
             cursor: pointer;
-            border: 2px solid transparent;
+            border: 2px solid var(--border);
             transition: all 0.2s;
             text-align: center;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            margin-bottom: 40px;
         }
-        .menu-card:hover { border-color: var(--accent); transform: translateY(-4px); }
-        .menu-card h2 { margin: 0 0 10px 0; color: var(--accent); }
+        .new-class-card:hover { border-color: var(--accent); transform: translateY(-4px); }
+        .new-class-card h2 { margin: 0 0 10px 0; color: var(--accent); }
+
+        .saved-classes-section { text-align: center; }
+        .saved-classes-section h2 { font-size: 1.2rem; color: var(--text-dim); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.05em; }
+        #saved-lists-container { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
 
         /* Inputs & Buttons */
-        input, textarea, select {
+        input[type="text"], input[type="number"], textarea, select {
             width: 100%;
-            background: #0f172a;
-            border: 1px solid #334155;
-            color: white;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            color: var(--text);
             padding: 12px;
             border-radius: 8px;
             font-size: 1rem;
             box-sizing: border-box;
             margin-bottom: 15px;
+            box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.05);
         }
+
+        textarea { resize: vertical; min-height: 120px; }
 
         .btn {
             padding: 12px 24px;
@@ -73,27 +83,35 @@
             border: none;
             font-weight: 600;
             cursor: pointer;
-            transition: opacity 0.2s;
+            transition: all 0.2s;
             display: inline-flex;
             align-items: center;
             gap: 8px;
+            font-size: 1rem;
         }
         .btn-primary { background: var(--accent); color: white; }
-        .btn-ghost { background: transparent; color: var(--text-dim); border: 1px solid #334155; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-ghost { background: var(--card-bg); color: var(--text); border: 1px solid var(--border); box-shadow: 0 1px 2px rgb(0 0 0 / 0.05); }
+        .btn-ghost:hover { background: #f1f5f9; }
         .btn-danger { background: var(--danger); color: white; }
+        .btn-success { background: var(--success); color: white; width: 100%; justify-content: center; font-size: 1.2rem; margin-top: 15px;}
+        .btn-success:hover { filter: brightness(0.95); }
 
         /* Student Chips */
-        .student-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin: 20px 0; }
+        .student-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin: 15px 0 30px 0; }
         .chip {
-            background: #334155;
+            background: #e2e8f0;
+            color: var(--text);
             padding: 10px;
             border-radius: 8px;
             text-align: center;
             cursor: pointer;
             user-select: none;
-            position: relative;
+            font-weight: 500;
+            transition: all 0.2s;
         }
-        .chip.inactive { opacity: 0.3; background: #1e293b; text-decoration: line-through; }
+        .chip:hover { filter: brightness(0.95); }
+        .chip.inactive { opacity: 0.5; background: #cbd5e1; color: var(--text-dim); text-decoration: line-through; }
         
         /* Result Cards */
         .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
@@ -101,14 +119,20 @@
             background: var(--card-bg);
             border-radius: 12px;
             padding: 20px;
-            border-top: 4px solid var(--accent);
+            border-top: 5px solid var(--accent);
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
         }
-        .group-card h3 { margin-top: 0; font-size: 0.9rem; text-transform: uppercase; color: var(--text-dim); }
+        .group-card h3 { margin-top: 0; font-size: 1.1rem; color: var(--accent); margin-bottom: 15px; }
         .group-card ul { list-style: none; padding: 0; margin: 0; }
-        .group-card li { padding: 8px 0; border-bottom: 1px solid #334155; }
-        .group-card li:last-child { border: none; }
+        .group-card li { padding: 8px 0; border-bottom: 1px solid var(--border); }
+        .group-card li:last-child { border: none; padding-bottom: 0; }
 
         .back-nav { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .settings-box { background: var(--card-bg); padding: 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgb(0 0 0 / 0.1); }
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9rem; color: var(--text-dim); }
+        
+        .checkbox-label { display: flex; align-items: center; gap: 10px; font-weight: normal; cursor: pointer; color: var(--text); font-size: 1rem; margin-top: 15px; margin-bottom: 0; }
+        .checkbox-label input[type="checkbox"] { width: auto; margin: 0; transform: scale(1.2); cursor: pointer; }
     </style>
 </head>
 <body>
@@ -116,17 +140,17 @@
 <div class="app-container">
     
     <div id="view-start" class="view active">
-        <h1>Gruppslumpare</h1>
-        <div class="grid-menu">
-            <div class="menu-card" onclick="showView('view-edit'); resetApp();">
-                <h2>Ny klass</h2>
-                <p>Skapa en helt ny lista från grunden</p>
-            </div>
-            <div class="menu-card" style="grid-column: span 2; margin-top: 10px;">
-                <h2>Mina sparade klasser</h2>
-                <div id="saved-lists-container" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 15px;">
-                    </div>
-            </div>
+        <h1>Gruppslumparen</h1>
+        
+        <div class="new-class-card" onclick="showView('view-edit'); resetApp();">
+            <h2>+ Skapa ny klass</h2>
+            <p style="color: var(--text-dim); margin: 0;">Skriv in eller klistra in elever för att börja</p>
+        </div>
+
+        <div class="saved-classes-section">
+            <h2>Mina sparade klasser</h2>
+            <div id="saved-lists-container">
+                </div>
         </div>
     </div>
 
@@ -136,31 +160,37 @@
             <button class="btn btn-danger" onclick="deleteCurrentList()">Radera klass</button>
         </div>
         
-        <input type="text" id="classNameInput" placeholder="Klassens namn (t.ex. 9F)" oninput="autoSave()">
-        <textarea id="rawNamesInput" rows="4" placeholder="Klistra in namn... (separera med radbrytning eller kommatecken)"></textarea>
-        <button class="btn btn-primary" onclick="parseNames()">Uppdatera lista</button>
+        <input type="text" id="classNameInput" placeholder="Klassens namn (t.ex. 9F)" onblur="handleNameChange(this.value)">
+        
+        <textarea id="rawNamesInput" placeholder="Skriv eller klistra in namn här... (separera med radbrytning eller kommatecken)" oninput="parseNames()"></textarea>
 
-        <div style="margin-top: 30px;">
+        <div style="margin-top: 20px;">
             <h3>Deltagare (<span id="active-count">0</span> närvarande)</h3>
-            <p style="color: var(--text-dim); font-size: 0.8rem;">Klicka på ett namn för att markera som frånvarande.</p>
+            <p style="color: var(--text-dim); font-size: 0.85rem; margin-top: -10px;">Klicka på en elev för att markera som frånvarande (stryks över).</p>
             <div id="student-grid" class="student-grid"></div>
         </div>
 
-        <div style="background: var(--card-bg); padding: 20px; border-radius: 12px; margin-top: 30px;">
-            <div style="display: flex; gap: 20px; align-items: flex-end;">
-                <div style="flex: 1;">
+        <div class="settings-box">
+            <div style="display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 150px;">
                     <label>Elever per grupp</label>
-                    <input type="number" id="groupSize" value="4">
+                    <input type="number" id="groupSize" value="4" min="2">
                 </div>
-                <div style="flex: 2;">
-                    <label>Logik</label>
+                <div style="flex: 2; min-width: 200px;">
+                    <label>Fördelningslogik</label>
                     <select id="logicMode">
                         <option value="balanced">Balanserad (t.ex. 3, 3, 3, 4, 4)</option>
                         <option value="overfill">Fyll upp (t.ex. 4, 4, 4, 4, 1)</option>
                     </select>
                 </div>
             </div>
-            <button class="btn btn-primary" style="width: 100%; justify-content: center; background: var(--success); font-size: 1.2rem;" onclick="generateGroups()">SLUMPA NU</button>
+            
+            <label class="checkbox-label">
+                <input type="checkbox" id="useRandomNames">
+                Använd roliga lagnamn (Stormen, Rävarna etc.)
+            </label>
+
+            <button class="btn btn-success" onclick="generateGroups()">SLUMPA GRUPPER</button>
         </div>
     </div>
 
@@ -169,7 +199,7 @@
             <button class="btn btn-ghost" onclick="showView('view-edit')">← Ändra elever</button>
             <button class="btn btn-primary" onclick="generateGroups()">Slumpa igen</button>
         </div>
-        <h1 id="result-title">Grupper</h1>
+        <h1 id="result-title">Färdiga grupper</h1>
         <div id="results-grid" class="results-grid"></div>
     </div>
 
@@ -178,8 +208,10 @@
 <script>
     let currentClass = { name: "", students: [] };
     let db = JSON.parse(localStorage.getItem('gruppslumpare_db') || '{}');
+    
+    const roligaLagnamn = ["Stormen", "Rävarna", "Pingvinerna", "Lejonen", "Örnarna", "Björnarna", "Vargarna", "Hajarna", "Tigrarna", "Lodjuren", "Drakarna", "Elefanterna", "Panterrarna", "Falkarna", "Kometerna"];
 
-    // Init
+    // Initiera appen
     renderSavedLists();
 
     function showView(viewId) {
@@ -192,14 +224,28 @@
         currentClass = { name: "", students: [] };
         document.getElementById('classNameInput').value = "";
         document.getElementById('rawNamesInput').value = "";
+        document.getElementById('useRandomNames').checked = false;
         renderStudentGrid();
+    }
+
+    function handleNameChange(newName) {
+        const trimmedName = newName.trim();
+        if (!trimmedName) return; // Spara inte om det är tomt
+        
+        // Om namnet har ändrats, radera den gamla sparfilen för att undvika dubbletter
+        if (currentClass.name && currentClass.name !== trimmedName && db[currentClass.name]) {
+            delete db[currentClass.name];
+        }
+        
+        currentClass.name = trimmedName;
+        autoSave();
     }
 
     function parseNames() {
         const input = document.getElementById('rawNamesInput').value;
         const names = input.split(/[\n,]+/).map(n => n.trim()).filter(n => n !== "");
         
-        // Behåll status på befintliga namn, lägg till nya
+        // Behåll aktiv/inaktiv-status på befintliga namn
         const newStudents = names.map(name => {
             const existing = currentClass.students.find(s => s.name === name);
             return existing ? existing : { name, active: true };
@@ -214,6 +260,10 @@
         const container = document.getElementById('student-grid');
         container.innerHTML = "";
         let activeCount = 0;
+
+        if (currentClass.students.length === 0) {
+            container.innerHTML = "<span style='color: var(--text-dim);'>Inga elever tillagda än...</span>";
+        }
 
         currentClass.students.forEach((s, i) => {
             if(s.active) activeCount++;
@@ -233,9 +283,12 @@
     }
 
     function autoSave() {
-        currentClass.name = document.getElementById('classNameInput').value || "Namnlös klass";
-        if (currentClass.name !== "Namnlös klass") {
-            db[currentClass.name] = currentClass.students;
+        const className = document.getElementById('classNameInput').value.trim();
+        // Spara bara om det faktiskt finns ett namn eller elever inlagda
+        if (className || currentClass.students.length > 0) {
+            const saveName = className || "Ofrälst klass";
+            currentClass.name = saveName;
+            db[saveName] = currentClass.students;
             localStorage.setItem('gruppslumpare_db', JSON.stringify(db));
         }
     }
@@ -243,7 +296,15 @@
     function renderSavedLists() {
         const container = document.getElementById('saved-lists-container');
         container.innerHTML = "";
-        Object.keys(db).forEach(name => {
+        
+        const keys = Object.keys(db).filter(k => db[k].length > 0); // Visa inte helt tomma spök-klasser
+        
+        if(keys.length === 0) {
+            container.innerHTML = "<p style='color: var(--text-dim);'>Du har inga sparade klasser ännu.</p>";
+            return;
+        }
+
+        keys.forEach(name => {
             const btn = document.createElement('button');
             btn.className = "btn btn-ghost";
             btn.textContent = name;
@@ -255,16 +316,18 @@
     function loadClass(name) {
         currentClass.name = name;
         currentClass.students = db[name];
-        document.getElementById('classNameInput').value = name;
+        document.getElementById('classNameInput').value = name === "Ofrälst klass" ? "" : name;
         document.getElementById('rawNamesInput').value = currentClass.students.map(s => s.name).join("\n");
         renderStudentGrid();
         showView('view-edit');
     }
 
     function deleteCurrentList() {
-        if(confirm("Vill du ta bort hela klassen?")) {
-            delete db[currentClass.name];
-            localStorage.setItem('gruppslumpare_db', JSON.stringify(db));
+        if(confirm("Är du säker på att du vill radera denna klass helt?")) {
+            if (currentClass.name && db[currentClass.name]) {
+                delete db[currentClass.name];
+                localStorage.setItem('gruppslumpare_db', JSON.stringify(db));
+            }
             showView('view-start');
         }
     }
@@ -273,17 +336,19 @@
         const activeNames = currentClass.students.filter(s => s.active).map(s => s.name);
         if (activeNames.length === 0) return alert("Inga elever är markerade som närvarande!");
 
-        // Shuffle
-        for (let i = activeNames.length - 1; i > 0; i--) {
+        // Kopiera listan och blanda eleverna
+        let shuffledStudents = [...activeNames];
+        for (let i = shuffledStudents.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            [activeNames[i], activeNames[j]] = [activeNames[j], activeNames[i]];
+            [shuffledStudents[i], shuffledStudents[j]] = [shuffledStudents[j], shuffledStudents[i]];
         }
 
-        const targetSize = parseInt(document.getElementById('groupSize').value);
+        const targetSize = parseInt(document.getElementById('groupSize').value) || 4;
         const mode = document.getElementById('logicMode').value;
-        const total = activeNames.length;
+        const total = shuffledStudents.length;
         let sizes = [];
 
+        // Räkna ut gruppstorlekar
         if (mode === 'overfill') {
             for (let i = 0; i < total; i += targetSize) {
                 sizes.push(Math.min(targetSize, total - i));
@@ -296,19 +361,33 @@
                 sizes.push(baseSize + (remainder > 0 ? 1 : 0));
                 remainder--;
             }
-            sizes.sort((a,b) => a - b);
+            sizes.sort((a,b) => b - a); // Största grupperna först
+        }
+
+        // Blanda lagnamn om rutan är ikryssad
+        const useRandomNames = document.getElementById('useRandomNames').checked;
+        let shuffledNames = [...roligaLagnamn];
+        if (useRandomNames) {
+            for (let i = shuffledNames.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffledNames[i], shuffledNames[j]] = [shuffledNames[j], shuffledNames[i]];
+            }
         }
 
         const grid = document.getElementById('results-grid');
         grid.innerHTML = "";
         let currentPos = 0;
 
+        // Bygg korten
         sizes.forEach((size, i) => {
-            const group = activeNames.slice(currentPos, currentPos + size);
+            const group = shuffledStudents.slice(currentPos, currentPos + size);
             currentPos += size;
+            
+            const groupTitle = useRandomNames ? `Lag ${shuffledNames[i % shuffledNames.length]}` : `Grupp ${i+1}`;
+            
             const card = document.createElement('div');
             card.className = 'group-card';
-            card.innerHTML = `<h3>Grupp ${i+1}</h3><ul>${group.map(n => `<li>${n}</li>`).join('')}</ul>`;
+            card.innerHTML = `<h3>${groupTitle}</h3><ul>${group.map(n => `<li>${n}</li>`).join('')}</ul>`;
             grid.appendChild(card);
         });
 
