@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gruppslumparen Pro</title>
+    <style>
+        :root {
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+            --danger: #ef4444;
+            --success: #22c55e;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 800px;
+            padding: 40px 20px;
+        }
+
+        /* Views */
+        .view { display: none; animation: fadeIn 0.3s ease; }
+        .view.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        h1 { font-size: 2.5rem; margin-bottom: 2rem; text-align: center; font-weight: 800; letter-spacing: -0.025em; }
+        
+        /* Splash Screen Cards */
+        .grid-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .menu-card {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 16px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        .menu-card:hover { border-color: var(--accent); transform: translateY(-4px); }
+        .menu-card h2 { margin: 0 0 10px 0; color: var(--accent); }
+
+        /* Inputs & Buttons */
+        input, textarea, select {
+            width: 100%;
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-ghost { background: transparent; color: var(--text-dim); border: 1px solid #334155; }
+        .btn-danger { background: var(--danger); color: white; }
+
+        /* Student Chips */
+        .student-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin: 20px 0; }
+        .chip {
+            background: #334155;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+        }
+        .chip.inactive { opacity: 0.3; background: #1e293b; text-decoration: line-through; }
+        
+        /* Result Cards */
+        .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+        .group-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            border-top: 4px solid var(--accent);
+        }
+        .group-card h3 { margin-top: 0; font-size: 0.9rem; text-transform: uppercase; color: var(--text-dim); }
+        .group-card ul { list-style: none; padding: 0; margin: 0; }
+        .group-card li { padding: 8px 0; border-bottom: 1px solid #334155; }
+        .group-card li:last-child { border: none; }
+
+        .back-nav { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    
+    <div id="view-start" class="view active">
+        <h1>Gruppslumpare</h1>
+        <div class="grid-menu">
+            <div class="menu-card" onclick="showView('view-edit'); resetApp();">
+                <h2>Ny klass</h2>
+                <p>Skapa en helt ny lista från grunden</p>
+            </div>
+            <div class="menu-card" style="grid-column: span 2; margin-top: 10px;">
+                <h2>Mina sparade klasser</h2>
+                <div id="saved-lists-container" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 15px;">
+                    </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="view-edit" class="view">
+        <div class="back-nav">
+            <button class="btn btn-ghost" onclick="showView('view-start')">← Tillbaka</button>
+            <button class="btn btn-danger" onclick="deleteCurrentList()">Radera klass</button>
+        </div>
+        
+        <input type="text" id="classNameInput" placeholder="Klassens namn (t.ex. 9F)" oninput="autoSave()">
+        <textarea id="rawNamesInput" rows="4" placeholder="Klistra in namn... (separera med radbrytning eller kommatecken)"></textarea>
+        <button class="btn btn-primary" onclick="parseNames()">Uppdatera lista</button>
+
+        <div style="margin-top: 30px;">
+            <h3>Deltagare (<span id="active-count">0</span> närvarande)</h3>
+            <p style="color: var(--text-dim); font-size: 0.8rem;">Klicka på ett namn för att markera som frånvarande.</p>
+            <div id="student-grid" class="student-grid"></div>
+        </div>
+
+        <div style="background: var(--card-bg); padding: 20px; border-radius: 12px; margin-top: 30px;">
+            <div style="display: flex; gap: 20px; align-items: flex-end;">
+                <div style="flex: 1;">
+                    <label>Elever per grupp</label>
+                    <input type="number" id="groupSize" value="4">
+                </div>
+                <div style="flex: 2;">
+                    <label>Logik</label>
+                    <select id="logicMode">
+                        <option value="balanced">Balanserad (t.ex. 3, 3, 3, 4, 4)</option>
+                        <option value="overfill">Fyll upp (t.ex. 4, 4, 4, 4, 1)</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn btn-primary" style="width: 100%; justify-content: center; background: var(--success); font-size: 1.2rem;" onclick="generateGroups()">SLUMPA NU</button>
+        </div>
+    </div>
+
+    <div id="view-results" class="view">
+        <div class="back-nav">
+            <button class="btn btn-ghost" onclick="showView('view-edit')">← Ändra elever</button>
+            <button class="btn btn-primary" onclick="generateGroups()">Slumpa igen</button>
+        </div>
+        <h1 id="result-title">Grupper</h1>
+        <div id="results-grid" class="results-grid"></div>
+    </div>
+
+</div>
+
+<script>
+    let currentClass = { name: "", students: [] };
+    let db = JSON.parse(localStorage.getItem('gruppslumpare_db') || '{}');
+
+    // Init
+    renderSavedLists();
+
+    function showView(viewId) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(viewId).classList.add('active');
+        if(viewId === 'view-start') renderSavedLists();
+    }
+
+    function resetApp() {
+        currentClass = { name: "", students: [] };
+        document.getElementById('classNameInput').value = "";
+        document.getElementById('rawNamesInput').value = "";
+        renderStudentGrid();
+    }
+
+    function parseNames() {
+        const input = document.getElementById('rawNamesInput').value;
+        const names = input.split(/[\n,]+/).map(n => n.trim()).filter(n => n !== "");
+        
+        // Behåll status på befintliga namn, lägg till nya
+        const newStudents = names.map(name => {
+            const existing = currentClass.students.find(s => s.name === name);
+            return existing ? existing : { name, active: true };
+        });
+
+        currentClass.students = newStudents;
+        autoSave();
+        renderStudentGrid();
+    }
+
+    function renderStudentGrid() {
+        const container = document.getElementById('student-grid');
+        container.innerHTML = "";
+        let activeCount = 0;
+
+        currentClass.students.forEach((s, i) => {
+            if(s.active) activeCount++;
+            const div = document.createElement('div');
+            div.className = `chip ${s.active ? '' : 'inactive'}`;
+            div.textContent = s.name;
+            div.onclick = () => toggleStudent(i);
+            container.appendChild(div);
+        });
+        document.getElementById('active-count').textContent = activeCount;
+    }
+
+    function toggleStudent(index) {
+        currentClass.students[index].active = !currentClass.students[index].active;
+        autoSave();
+        renderStudentGrid();
+    }
+
+    function autoSave() {
+        currentClass.name = document.getElementById('classNameInput').value || "Namnlös klass";
+        if (currentClass.name !== "Namnlös klass") {
+            db[currentClass.name] = currentClass.students;
+            localStorage.setItem('gruppslumpare_db', JSON.stringify(db));
+        }
+    }
+
+    function renderSavedLists() {
+        const container = document.getElementById('saved-lists-container');
+        container.innerHTML = "";
+        Object.keys(db).forEach(name => {
+            const btn = document.createElement('button');
+            btn.className = "btn btn-ghost";
+            btn.textContent = name;
+            btn.onclick = () => loadClass(name);
+            container.appendChild(btn);
+        });
+    }
+
+    function loadClass(name) {
+        currentClass.name = name;
+        currentClass.students = db[name];
+        document.getElementById('classNameInput').value = name;
+        document.getElementById('rawNamesInput').value = currentClass.students.map(s => s.name).join("\n");
+        renderStudentGrid();
+        showView('view-edit');
+    }
+
+    function deleteCurrentList() {
+        if(confirm("Vill du ta bort hela klassen?")) {
+            delete db[currentClass.name];
+            localStorage.setItem('gruppslumpare_db', JSON.stringify(db));
+            showView('view-start');
+        }
+    }
+
+    function generateGroups() {
+        const activeNames = currentClass.students.filter(s => s.active).map(s => s.name);
+        if (activeNames.length === 0) return alert("Inga elever är markerade som närvarande!");
+
+        // Shuffle
+        for (let i = activeNames.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [activeNames[i], activeNames[j]] = [activeNames[j], activeNames[i]];
+        }
+
+        const targetSize = parseInt(document.getElementById('groupSize').value);
+        const mode = document.getElementById('logicMode').value;
+        const total = activeNames.length;
+        let sizes = [];
+
+        if (mode === 'overfill') {
+            for (let i = 0; i < total; i += targetSize) {
+                sizes.push(Math.min(targetSize, total - i));
+            }
+        } else {
+            const numGroups = Math.ceil(total / targetSize);
+            const baseSize = Math.floor(total / numGroups);
+            let remainder = total % numGroups;
+            for (let i = 0; i < numGroups; i++) {
+                sizes.push(baseSize + (remainder > 0 ? 1 : 0));
+                remainder--;
+            }
+            sizes.sort((a,b) => a - b);
+        }
+
+        const grid = document.getElementById('results-grid');
+        grid.innerHTML = "";
+        let currentPos = 0;
+
+        sizes.forEach((size, i) => {
+            const group = activeNames.slice(currentPos, currentPos + size);
+            currentPos += size;
+            const card = document.createElement('div');
+            card.className = 'group-card';
+            card.innerHTML = `<h3>Grupp ${i+1}</h3><ul>${group.map(n => `<li>${n}</li>`).join('')}</ul>`;
+            grid.appendChild(card);
+        });
+
+        showView('view-results');
+    }
+</script>
+</body>
+</html>
