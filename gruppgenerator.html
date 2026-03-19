@@ -8,13 +8,16 @@
         :root {
             --accent: #4f46e5;
             --accent-hover: #4338ca;
-            --bg: #f8fafc;
+            --bg: #f1f5f9;
             --card-bg: #ffffff;
             --text: #0f172a;
-            --text-dim: #64748b;
-            --danger: #ef4444;
-            --success: #10b981;
-            --border: #e2e8f0;
+            --text-dim: #475569;
+            --danger: #dc2626;
+            --danger-bg: #fef2f2;
+            --success: #059669;
+            --success-bg: #ecfdf5;
+            --border: #cbd5e1;
+            --warning: #f59e0b;
         }
 
         body {
@@ -22,258 +25,309 @@
             background-color: var(--bg);
             color: var(--text);
             margin: 0;
-            display: flex;
-            justify-content: center;
-            min-height: 100vh;
+            height: 100vh;
+            overflow: hidden;
         }
 
-        .app-container {
-            width: 100%;
-            max-width: 1000px;
-            padding: 40px 20px;
-        }
+        .app-container { width: 100%; height: 100%; display: flex; flex-direction: column; }
 
         /* Views */
-        .view { display: none; animation: fadeIn 0.3s ease; }
-        .view.active { display: block; }
+        .view { display: none; height: 100%; flex-direction: column; }
+        .view.active { display: flex; animation: fadeIn 0.2s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        h1, h2, h3, h4 { color: var(--text); margin-top: 0; }
+        h3 { font-size: 1.1rem; border-bottom: 2px solid var(--border); padding-bottom: 5px; margin-bottom: 10px; }
 
-        h1 { font-size: 2.5rem; margin-bottom: 2rem; text-align: center; font-weight: 800; letter-spacing: -0.025em; color: var(--text); }
-        h2, h3 { color: var(--text); }
-        
-        /* Menu */
-        .new-class-card {
-            background: var(--card-bg);
-            padding: 30px;
-            border-radius: 16px;
-            cursor: pointer;
-            border: 2px solid var(--border);
-            transition: all 0.2s;
-            text-align: center;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-            margin-bottom: 40px;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
+        /* HEADER NAV */
+        .header-nav {
+            background: var(--card-bg); padding: 10px 20px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); flex-shrink: 0; z-index: 10;
         }
-        .new-class-card:hover { border-color: var(--accent); transform: translateY(-4px); }
-        .new-class-card h2 { margin: 0 0 10px 0; color: var(--accent); }
+        .header-center { flex-grow: 1; padding-left: 20px; font-weight: 800; font-size: 1.2rem; color: var(--text-dim); }
+        .header-actions { display: flex; gap: 10px; align-items: center; }
 
-        .saved-classes-section { text-align: center; }
-        .saved-classes-section h2 { font-size: 1.2rem; color: var(--text-dim); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.05em; }
-        #saved-lists-container { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
-
-        /* Inputs & Buttons */
-        input[type="text"], input[type="number"], textarea, select {
-            width: 100%;
-            background: #ffffff;
-            border: 1px solid var(--border);
-            color: var(--text);
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 1rem;
-            box-sizing: border-box;
-            margin-bottom: 15px;
-            box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.05);
-        }
-
-        textarea { resize: vertical; min-height: 120px; }
-
-        .btn {
-            padding: 12px 24px;
-            border-radius: 8px;
-            border: none;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 1rem;
-        }
+        /* Knappar */
+        .btn { padding: 8px 16px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; justify-content: center; font-size: 0.95rem; }
         .btn-primary { background: var(--accent); color: white; }
         .btn-primary:hover { background: var(--accent-hover); }
-        .btn-ghost { background: var(--card-bg); color: var(--text); border: 1px solid var(--border); box-shadow: 0 1px 2px rgb(0 0 0 / 0.05); }
-        .btn-ghost:hover { background: #f1f5f9; }
-        .btn-danger { background: var(--danger); color: white; }
-        .btn-success { background: var(--success); color: white; width: 100%; justify-content: center; font-size: 1.2rem; margin-top: 15px;}
-        .btn-success:hover { filter: brightness(0.95); }
-
-        /* Grid Layouts */
-        .edit-layout {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
-        }
-
-        @media (min-width: 768px) {
-            .edit-layout {
-                grid-template-columns: 1fr 1.5fr; 
-                gap: 40px;
-                align-items: start;
-            }
-            textarea#rawNamesInput {
-                height: calc(100vh - 300px); 
-                min-height: 400px;
-            }
-        }
-
-        /* Student Chips */
-        .student-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin: 15px 0 30px 0; }
-        .chip {
-            background: #e2e8f0;
-            color: var(--text);
-            padding: 10px;
-            border-radius: 8px;
-            text-align: center;
-            cursor: pointer;
-            user-select: none;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-        .chip:hover { filter: brightness(0.95); }
-        .chip.inactive { opacity: 0.5; background: #cbd5e1; color: var(--text-dim); text-decoration: line-through; }
+        .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
+        .btn-ghost:hover { background: #e2e8f0; }
+        .btn-danger { background: var(--danger-bg); color: var(--danger); border: 1px solid #fca5a5; }
+        .btn-danger:hover { background: #fecaca; }
         
-        /* Result Cards & Drag and Drop */
-        .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
-        .group-card {
-            background: var(--card-bg);
-            border-radius: 12px;
-            padding: 20px;
-            border-top: 5px solid var(--accent);
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-            display: flex;
-            flex-direction: column;
-        }
-        .group-card h3 { margin-top: 0; font-size: 1.1rem; color: var(--accent); margin-bottom: 15px; }
-        
-        /* Drop zone styles */
-        .drop-zone { 
-            list-style: none; 
-            padding: 0; 
-            margin: 0; 
-            min-height: 50px; /* Gör att man kan droppa i tomma grupper */
-            flex-grow: 1;
-            border-radius: 8px;
-            transition: background-color 0.2s;
-        }
-        
-        .drop-zone.drag-over {
-            background-color: #f1f5f9;
-        }
+        .btn-mega-success { background: var(--success); color: white; font-size: 1rem; padding: 10px 20px; text-transform: uppercase; letter-spacing: 1px; font-weight: 800; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4); }
+        .btn-mega-success:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .btn-mega-success:disabled { background: #94a3b8; box-shadow: none; cursor: not-allowed; transform: none; filter: none; }
 
-        /* Draggable student styles */
-        .draggable-student { 
-            padding: 8px 10px; 
-            border-bottom: 1px solid var(--border);
-            cursor: grab;
-            background-color: var(--card-bg);
-            border-radius: 4px;
-            margin-bottom: 2px;
-            transition: transform 0.1s;
+        .privacy-btn { background: #f1f5f9; color: var(--text-dim); border: 1px solid var(--border); }
+        .privacy-btn.active { background: var(--text); color: white; border-color: var(--text); }
+        .privacy-blur { filter: blur(6px); pointer-events: none; user-select: none; opacity: 0.6; transition: filter 0.3s; }
+
+        input[type="text"], input[type="number"], textarea, select {
+            width: 100%; background: #ffffff; border: 1px solid var(--border); color: var(--text);
+            padding: 8px; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box; margin-bottom: 10px; transition: all 0.2s;
         }
+        textarea { resize: none; flex-grow: 1; min-height: 200px; font-family: monospace; font-size: 1rem;}
+        
+        .input-error { border: 2px solid var(--danger) !important; background: var(--danger-bg) !important; }
+        .duplicate-warning { background: var(--danger); color: white; font-size: 0.85rem; padding: 8px; border-radius: 4px; margin-bottom: 10px; font-weight: bold; display: none; }
+
+        /* Animation för för liten gruppstorlek */
+        @keyframes pulseError {
+            0% { transform: scale(1); border-color: var(--border); }
+            50% { transform: scale(1.08); border-color: var(--danger); background: var(--danger-bg); box-shadow: 0 0 10px rgba(220, 38, 38, 0.3); }
+            100% { transform: scale(1); border-color: var(--border); }
+        }
+        .pulse-error { animation: pulseError 0.4s ease-out; }
+
+        /* Startskärmen */
+        .start-container { max-width: 800px; margin: 40px auto; text-align: center; }
+        .new-class-card { background: var(--card-bg); padding: 30px; border-radius: 8px; cursor: pointer; border: 2px dashed var(--accent); margin-bottom: 30px; }
+        .new-class-card:hover { background: #e0e7ff; }
+        #saved-lists-container { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+
+        /* --- DASHBOARD GRID --- */
+        .dashboard-grid { display: grid; grid-template-columns: 250px minmax(400px, 1fr) 400px; gap: 15px; flex-grow: 1; padding: 15px; height: 100%; min-height: 0; box-sizing: border-box; }
+        .panel { background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border); padding: 15px; display: flex; flex-direction: column; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        
+        .settings-row { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; background: var(--bg); padding: 10px; border-radius: 6px; margin-bottom: 15px; border: 1px solid var(--border); }
+        .settings-row label { font-size: 0.8rem; font-weight: bold; margin-bottom: 2px; display: block; color: var(--text-dim); }
+        .checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; margin-top: 5px; cursor: pointer; grid-column: 1 / -1; font-weight: normal; color: var(--text);}
+        .checkbox-label input { width: auto; margin: 0; cursor: pointer; }
+
+        /* Chips */
+        .student-grid { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 15px; max-height: 200px; overflow-y: auto; align-content: flex-start; padding-right: 5px;}
+        .chip { background: #e2e8f0; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; cursor: pointer; user-select: none; font-weight: 500; border: 1px solid #cbd5e1; }
+        .chip:hover { background: #cbd5e1; }
+        .chip.inactive { opacity: 0.4; text-decoration: line-through; background: #f1f5f9; }
+
+        /* Regellistan */
+        .rules-list-container { flex-grow: 1; overflow-y: auto; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 5px; }
+        .rule-item { display: flex; justify-content: space-between; align-items: center; background: #fff; border: 1px solid var(--border); padding: 6px 10px; border-radius: 4px; margin-bottom: 4px; font-size: 0.85rem; transition: all 0.3s;}
+        .rule-item.conflict-highlight { border-color: var(--danger); background: var(--danger-bg); box-shadow: 0 0 8px rgba(220, 38, 38, 0.5); transform: scale(1.01); z-index: 2; position: relative;}
+        
+        .rule-toggle-btn { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 900; cursor: pointer; border: 1px solid transparent; transition: 0.1s; flex-grow: 1; text-align: center; margin: 0 10px; }
+        .rule-toggle-btn.together { background: var(--success-bg); color: var(--success); border-color: #a7f3d0; }
+        .rule-toggle-btn.apart { background: var(--danger-bg); color: var(--danger); border-color: #fca5a5; }
+        .rule-toggle-btn:hover { filter: brightness(0.95); border-color: var(--text-dim); }
+
+        .btn-small { padding: 4px 8px; font-size: 0.75rem; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; color: var(--text-dim);}
+        .btn-small:hover { background: #cbd5e1; color: var(--danger); }
+
+        /* Högerkolumn: Regelbyggaren */
+        .rule-mode-selector { display: flex; width: 100%; margin-bottom: 10px; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
+        .mode-btn { flex: 1; padding: 10px; border: none; font-weight: bold; font-size: 0.85rem; cursor: pointer; background: #f8fafc; color: var(--text-dim); transition: 0.1s; }
+        .mode-btn.active-together { background: var(--success); color: white; }
+        .mode-btn.active-apart { background: var(--danger); color: white; }
+
+        .picker-container { display: flex; gap: 10px; flex-grow: 1; height: 100%; min-height: 0; }
+        .picker-col { flex: 1; display: flex; flex-direction: column; }
+        .picker-col h4 { font-size: 0.8rem; color: var(--text-dim); margin-bottom: 5px; text-transform: uppercase; text-align: center;}
+        
+        .picker-list { flex-grow: 1; overflow-y: auto; background: #fff; border: 1px solid var(--border); border-radius: 4px; padding: 2px; }
+        .picker-item { padding: 6px 8px; font-size: 0.9rem; cursor: pointer; border-bottom: 1px solid #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: none; }
+        .picker-item:hover { background: #e2e8f0; }
+        .picker-item.selected { background: var(--accent); color: white; font-weight: bold; }
+
+        /* Färdiga grupper vyn */
+        .results-workspace { padding: 20px; flex-grow: 1; overflow-y: auto; background: var(--bg); }
+        .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; }
+        .group-card { background: var(--card-bg); border-radius: 6px; padding: 15px; border-top: 4px solid var(--accent); box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; }
+        .drop-zone { list-style: none; padding: 0; margin: 0; min-height: 50px; flex-grow: 1; border-radius: 4px; }
+        .drop-zone.drag-over { background-color: #f8fafc; outline: 2px dashed var(--accent); }
+        .draggable-student { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; cursor: grab; font-size: 0.95rem; background: white; }
         .draggable-student:active { cursor: grabbing; }
-        .draggable-student:last-child { border-bottom: none; }
-        
-        /* När ett element dras */
-        .draggable-student.dragging {
-            opacity: 0.5;
-            background-color: #e2e8f0;
-            transform: scale(0.98);
-        }
+        .draggable-student.dragging { opacity: 0.5; background-color: #e2e8f0; }
 
-        .back-nav { margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
-        .settings-box { background: var(--card-bg); padding: 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgb(0 0 0 / 0.1); }
-        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9rem; color: var(--text-dim); }
+        @media (max-width: 1000px) { body { overflow: auto; } .dashboard-grid { grid-template-columns: 1fr; height: auto; } .panel { min-height: 400px; } }
+
+        /* --- MODALER OCH TOASTS (NYTT) --- */
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;}
+        .toast { background: var(--card-bg); color: var(--text); padding: 12px 20px; border-radius: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); font-weight: 500; font-size: 0.9rem; display: flex; align-items: center; gap: 10px; animation: slideInRight 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; min-width: 250px;}
+        .toast.error { border-left: 5px solid var(--danger); }
+        .toast.warning { border-left: 5px solid var(--warning); }
+        .toast.success { border-left: 5px solid var(--success); }
+        .toast.hide { animation: fadeOutRight 0.3s forwards; }
         
-        .checkbox-label { display: flex; align-items: center; gap: 10px; font-weight: normal; cursor: pointer; color: var(--text); font-size: 1rem; margin-top: 15px; margin-bottom: 0; }
-        .checkbox-label input[type="checkbox"] { width: auto; margin: 0; transform: scale(1.2); cursor: pointer; }
+        @keyframes slideInRight { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOutRight { from { transform: translateX(0); opacity: 1; } to { transform: translateX(120%); opacity: 0; } }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(2px); z-index: 10000; display: none; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.2s; }
+        .modal-overlay.active { display: flex; opacity: 1; }
+        .modal-content { background: var(--card-bg); padding: 25px; border-radius: 8px; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); transform: translateY(20px); transition: transform 0.2s; }
+        .modal-overlay.active .modal-content { transform: translateY(0); }
+        .modal-content h2 { margin-top: 0; color: var(--danger); display: flex; align-items: center; gap: 10px;}
     </style>
 </head>
 <body>
 
+<div id="toast-container"></div>
+
+<div id="delete-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h2>⚠️ Är du säker?</h2>
+        <p>Denna klass och alla dess specialregler kommer att raderas permanent. Detta går inte att ångra.</p>
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 25px;">
+            <button class="btn btn-ghost" onclick="closeModal()">Avbryt</button>
+            <button class="btn btn-danger" onclick="executeDelete()">Ja, radera klassen</button>
+        </div>
+    </div>
+</div>
+
 <div class="app-container">
     
     <div id="view-start" class="view active">
-        <h1>Gruppslumparen</h1>
-        
-        <div class="new-class-card" onclick="showView('view-edit'); resetApp();">
-            <h2>+ Skapa ny klass</h2>
-            <p style="color: var(--text-dim); margin: 0;">Skriv in eller klistra in elever för att börja</p>
-        </div>
+        <div class="start-container">
+            <h1 style="font-size: 3rem; margin-bottom: 10px;">Gruppslumparen <span style="color: var(--accent);">Pro</span></h1>
+            <p style="color: var(--text-dim); margin-bottom: 40px;">Verktyget för lärare som vill ha kontroll över klassrumsdynamiken.</p>
+            
+            <div class="new-class-card" onclick="showView('view-edit'); resetApp();">
+                <h2>+ Skapa ny klass</h2>
+            </div>
 
-        <div class="saved-classes-section">
-            <h2>Mina sparade klasser</h2>
-            <div id="saved-lists-container">
-                </div>
+            <div class="saved-classes-section">
+                <h2>Mina sparade klasser</h2>
+                <div id="saved-lists-container"></div>
+            </div>
         </div>
     </div>
 
     <div id="view-edit" class="view">
-        <div class="back-nav">
-            <button class="btn btn-ghost" onclick="showView('view-start')">← Tillbaka</button>
-            <button class="btn btn-danger" onclick="deleteCurrentList()">Radera klass</button>
+        
+        <div class="header-nav">
+            <button class="btn btn-ghost" onclick="showView('view-start')">← Huvudmeny</button>
+            <div class="header-center">
+                <span id="header-class-name">Ofrälst klass</span>
+            </div>
+            <div class="header-actions">
+                <button id="privacy-toggle-btn" class="btn btn-small privacy-btn" onclick="togglePrivacy()">👁 Visa/dölj specialregler</button>
+                <button class="btn btn-danger" onclick="confirmDelete()">🗑 Radera</button>
+                <button id="btn-slumpa-main" class="btn btn-mega-success" onclick="generateGroups()">SLUMPA GRUPPER 🎲</button>
+            </div>
         </div>
         
-        <div class="edit-layout">
-            <div class="edit-left">
-                <input type="text" id="classNameInput" placeholder="Klassens namn (t.ex. 9F)" onblur="handleNameChange(this.value)">
-                <textarea id="rawNamesInput" placeholder="Skriv eller klistra in namn här... (separera med radbrytning eller kommatecken)" oninput="parseNames()"></textarea>
+        <div class="dashboard-grid">
+            
+            <div class="panel">
+                <h3>Klassdata</h3>
+                <input type="text" id="classNameInput" placeholder="Klassens namn (t.ex. 9F)" oninput="handleNameChange(this.value)">
+                
+                <label style="font-size: 0.8rem; font-weight: bold; color: var(--text-dim);">Klistra in namn (radbrytning/komma)</label>
+                <div id="duplicate-warning" class="duplicate-warning"></div>
+                <textarea id="rawNamesInput" placeholder="Adolf&#10;Linnea&#10;Hugo&#10;Charles..." oninput="parseNames()"></textarea>
             </div>
 
-            <div class="edit-right">
-                <div>
-                    <h3 style="margin-top: 0;">Deltagare (<span id="active-count">0</span> närvarande)</h3>
-                    <p style="color: var(--text-dim); font-size: 0.85rem; margin-top: -10px;">Klicka på en elev för att markera som frånvarande (stryks över).</p>
-                    <div id="student-grid" class="student-grid"></div>
-                </div>
-
-                <div class="settings-box">
-                    <div style="display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;">
-                        <div style="flex: 1; min-width: 150px;">
-                            <label>Elever per grupp</label>
-                            <input type="number" id="groupSize" value="4" min="2">
-                        </div>
-                        <div style="flex: 2; min-width: 200px;">
-                            <label>Fördelningslogik</label>
-                            <select id="logicMode">
-                                <option value="balanced">Balanserad (t.ex. 3, 3, 3, 4, 4)</option>
-                                <option value="overfill">Fyll upp (t.ex. 4, 4, 4, 4, 1)</option>
-                            </select>
-                        </div>
+            <div class="panel">
+                <div class="settings-row">
+                    <div>
+                        <label>Elever / Grupp</label>
+                        <input type="number" id="groupSize" value="4" min="2" style="margin:0;" onchange="handleGroupSizeChange(this)">
                     </div>
-                    
+                    <div>
+                        <label>Fördelningslogik</label>
+                        <select id="logicMode" style="margin:0;">
+                            <option value="balanced">Balanserad (t.ex. 3, 3, 3, 4, 4)</option>
+                            <option value="overfill">Fyll upp (t.ex. 4, 4, 4, 4, 1)</option>
+                        </select>
+                    </div>
                     <label class="checkbox-label">
-                        <input type="checkbox" id="useRandomNames">
-                        Använd roliga lagnamn (Stormen, Rävarna etc.)
+                        <input type="checkbox" id="useRandomNames"> Roliga lagnamn
                     </label>
+                </div>
 
-                    <button class="btn btn-success" onclick="generateGroups()">SLUMPA GRUPPER</button>
+                <h3>Deltagare (<span id="active-count">0</span>)</h3>
+                <div id="student-grid" class="student-grid"></div>
+
+                <h3>Aktiva Specialregler</h3>
+                <div id="rules-list" class="rules-list-container"></div>
+            </div>
+
+            <div class="panel" id="rule-builder-panel">
+                <h3>Lägg till specialregel</h3>
+                <p style="font-size: 0.8rem; color: var(--text-dim); margin: -5px 0 10px 0;">Klicka på en elev i båda listorna för att spara direkt.</p>
+                
+                <div class="rule-mode-selector">
+                    <button id="btn-mode-together" class="mode-btn active-together" onclick="setMode('together')">MÅSTE VARA MED</button>
+                    <button id="btn-mode-apart" class="mode-btn" onclick="setMode('apart')">FÅR INTE VARA MED</button>
+                </div>
+
+                <div class="picker-container">
+                    <div class="picker-col">
+                        <h4>Klicka Elev 1</h4>
+                        <div id="picker-s1" class="picker-list"></div>
+                    </div>
+                    <div class="picker-col">
+                        <h4>Klicka Elev 2</h4>
+                        <div id="picker-s2" class="picker-list"></div>
+                    </div>
                 </div>
             </div>
+
         </div>
     </div>
 
     <div id="view-results" class="view">
-        <div class="back-nav">
-            <button class="btn btn-ghost" onclick="showView('view-edit')">← Ändra elever</button>
-            <button class="btn btn-primary" onclick="generateGroups()">Slumpa igen</button>
+        <div class="header-nav">
+            <button class="btn btn-ghost" onclick="showView('view-edit')">← Ändra elever & regler</button>
+            <div class="header-center">Färdiga grupper</div>
+            <button class="btn btn-mega-success" onclick="generateGroups()">Slumpa igen 🎲</button>
         </div>
-        <h1 id="result-title">Färdiga grupper</h1>
-        <p style="text-align: center; color: var(--text-dim); margin-top: -1.5rem; margin-bottom: 2rem;">Dra och släpp elever för att byta grupp</p>
-        <div id="results-grid" class="results-grid"></div>
+        
+        <div class="results-workspace">
+            <p style="text-align: center; color: var(--text-dim); margin-top: 0; margin-bottom: 20px;">Dra och släpp elever mellan listorna för att byta manuellt.</p>
+            <div id="results-grid" class="results-grid"></div>
+        </div>
     </div>
 
 </div>
 
 <script>
-    let currentClass = { name: "", students: [] };
+    let currentClass = { name: "", students: [], rules: [] };
     let db = JSON.parse(localStorage.getItem('gruppslumpare_db') || '{}');
+    
+    // UI State
+    let selectedS1 = null;
+    let selectedS2 = null;
+    let selectedType = 'together'; 
+    let privacyMode = false;
+    let hasDuplicates = false;
     
     const roligaLagnamn = ["Stormen", "Rävarna", "Pingvinerna", "Lejonen", "Örnarna", "Björnarna", "Vargarna", "Hajarna", "Tigrarna", "Lodjuren", "Drakarna", "Elefanterna", "Panterrarna", "Falkarna", "Kometerna"];
 
-    // Initiera appen
+    // --- TOAST SYSTEM ---
+    function showToast(message, type = 'error') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        
+        let icon = '🛑';
+        if(type === 'warning') icon = '⚠️';
+        if(type === 'success') icon = '✅';
+
+        toast.innerHTML = `<span>${icon}</span> <div>${message}</div>`;
+        container.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.classList.add('hide');
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
+    }
+
+    // --- MODAL SYSTEM ---
+    function confirmDelete() { document.getElementById('delete-modal').classList.add('active'); }
+    function closeModal() { document.getElementById('delete-modal').classList.remove('active'); }
+    function executeDelete() {
+        closeModal();
+        if (currentClass.name && db[currentClass.name]) {
+            delete db[currentClass.name];
+            localStorage.setItem('gruppslumpare_db', JSON.stringify(db));
+        }
+        showView('view-start');
+        showToast("Klassen raderades.", "success");
+    }
+
     renderSavedLists();
 
     function showView(viewId) {
@@ -283,37 +337,120 @@
     }
 
     function resetApp() {
-        currentClass = { name: "", students: [] };
+        currentClass = { name: "", students: [], rules: [] };
         document.getElementById('classNameInput').value = "";
         document.getElementById('rawNamesInput').value = "";
         document.getElementById('useRandomNames').checked = false;
+        hasDuplicates = false;
+        document.getElementById('duplicate-warning').style.display = 'none';
+        document.getElementById('rawNamesInput').classList.remove('input-error');
+        document.getElementById('btn-slumpa-main').disabled = false;
+        document.getElementById('header-class-name').textContent = "Ofrälst klass";
         renderStudentGrid();
+        renderRules();
     }
 
     function handleNameChange(newName) {
         const trimmedName = newName.trim();
+        document.getElementById('header-class-name').textContent = trimmedName || "Ofrälst klass";
         if (!trimmedName) return; 
-        
         if (currentClass.name && currentClass.name !== trimmedName && db[currentClass.name]) {
             delete db[currentClass.name];
         }
-        
         currentClass.name = trimmedName;
         autoSave();
     }
 
+    // --- GRUPPSTORLEK VALIDERING I REALTID ---
+    function handleGroupSizeChange(input) {
+        const targetSize = parseInt(input.value) || 2;
+        const maxCluster = getMaxClusterSize();
+        
+        if (targetSize < maxCluster) {
+            // Revert value
+            input.value = maxCluster;
+            // Animera rutan
+            input.classList.remove('pulse-error');
+            void input.offsetWidth; // trigger reflow
+            input.classList.add('pulse-error');
+            
+            showToast(`Dina specialregler tvingar ihop en grupp på ${maxCluster} elever. Du kan inte sänka gruppstorleken mer om du inte tar bort den regeln.`, 'error');
+        }
+    }
+
+    function getMaxClusterSize() {
+        if (!currentClass.rules || currentClass.rules.length === 0) return 0;
+        const activeNames = currentClass.students.filter(s => s.active).map(s => s.name);
+        
+        let parent = {};
+        activeNames.forEach(n => parent[n] = n);
+        function find(i) { return parent[i] === i ? i : (parent[i] = find(parent[i])); }
+        function union(i, j) { parent[find(i)] = find(j); }
+
+        currentClass.rules.filter(r => r.type === 'together').forEach(r => {
+            if(activeNames.includes(r.s1) && activeNames.includes(r.s2)) union(r.s1, r.s2);
+        });
+
+        let clusterSizes = {};
+        let max = 0;
+        activeNames.forEach(n => {
+            let root = find(n);
+            clusterSizes[root] = (clusterSizes[root] || 0) + 1;
+            if (clusterSizes[root] > max) max = clusterSizes[root];
+        });
+        return max;
+    }
+
+    // --- NAMN & DUBBLETTER ---
     function parseNames() {
         const input = document.getElementById('rawNamesInput').value;
-        const names = input.split(/[\n,]+/).map(n => n.trim()).filter(n => n !== "");
+        const rawNames = input.split(/[\n,]+/).map(n => n.trim()).filter(n => n !== "");
         
-        const newStudents = names.map(name => {
+        const counts = {};
+        const duplicates = new Set();
+        rawNames.forEach(n => {
+            counts[n] = (counts[n] || 0) + 1;
+            if (counts[n] > 1) duplicates.add(n);
+        });
+
+        const dupWarning = document.getElementById('duplicate-warning');
+        const slumpaBtn = document.getElementById('btn-slumpa-main');
+        const textarea = document.getElementById('rawNamesInput');
+
+        if (duplicates.size > 0) {
+            hasDuplicates = true;
+            dupWarning.style.display = 'block';
+            dupWarning.textContent = `Samma namn flera gånger: ${[...duplicates].join(', ')}. Lägg till en initial!`;
+            textarea.classList.add('input-error');
+            slumpaBtn.disabled = true;
+            slumpaBtn.textContent = "FIXA NAMNEN FÖRST";
+        } else {
+            if(hasDuplicates) { // Endast ta bort varningen om den var där innan
+                hasDuplicates = false;
+                dupWarning.style.display = 'none';
+                textarea.classList.remove('input-error');
+                slumpaBtn.disabled = false;
+                slumpaBtn.textContent = "SLUMPA GRUPPER 🎲";
+            }
+        }
+
+        const uniqueNames = [...new Set(rawNames)];
+        
+        currentClass.students = uniqueNames.map(name => {
             const existing = currentClass.students.find(s => s.name === name);
             return existing ? existing : { name, active: true };
         });
 
-        currentClass.students = newStudents;
-        autoSave();
+        if (currentClass.rules) {
+            currentClass.rules = currentClass.rules.filter(r => 
+                uniqueNames.includes(r.s1) && uniqueNames.includes(r.s2)
+            );
+        }
+
+        if(!hasDuplicates) autoSave();
         renderStudentGrid();
+        updatePickers();
+        renderRules();
     }
 
     function renderStudentGrid() {
@@ -322,7 +459,7 @@
         let activeCount = 0;
 
         if (currentClass.students.length === 0) {
-            container.innerHTML = "<span style='color: var(--text-dim);'>Inga elever tillagda än...</span>";
+            container.innerHTML = "<span style='font-size:0.85rem; color: var(--text-dim);'>Skriv in namn till vänster...</span>";
         }
 
         currentClass.students.forEach((s, i) => {
@@ -330,24 +467,25 @@
             const div = document.createElement('div');
             div.className = `chip ${s.active ? '' : 'inactive'}`;
             div.textContent = s.name;
-            div.onclick = () => toggleStudent(i);
+            div.onclick = () => {
+                currentClass.students[i].active = !currentClass.students[i].active;
+                if(!hasDuplicates) autoSave();
+                renderStudentGrid();
+                updatePickers(); 
+            };
             container.appendChild(div);
         });
         document.getElementById('active-count').textContent = activeCount;
-    }
-
-    function toggleStudent(index) {
-        currentClass.students[index].active = !currentClass.students[index].active;
-        autoSave();
-        renderStudentGrid();
+        updatePickers();
     }
 
     function autoSave() {
+        if(hasDuplicates) return;
         const className = document.getElementById('classNameInput').value.trim();
         if (className || currentClass.students.length > 0) {
             const saveName = className || "Ofrälst klass";
             currentClass.name = saveName;
-            db[saveName] = currentClass.students;
+            db[saveName] = { students: currentClass.students, rules: currentClass.rules || [] };
             localStorage.setItem('gruppslumpare_db', JSON.stringify(db));
         }
     }
@@ -355,11 +493,13 @@
     function renderSavedLists() {
         const container = document.getElementById('saved-lists-container');
         container.innerHTML = "";
-        
-        const keys = Object.keys(db).filter(k => db[k].length > 0); 
+        const keys = Object.keys(db).filter(k => {
+            const data = db[k];
+            return (Array.isArray(data) && data.length > 0) || (data && data.students && data.students.length > 0);
+        }); 
         
         if(keys.length === 0) {
-            container.innerHTML = "<p style='color: var(--text-dim);'>Du har inga sparade klasser ännu.</p>";
+            container.innerHTML = "<p style='color: var(--text-dim);'>Inga sparade klasser ännu.</p>";
             return;
         }
 
@@ -373,43 +513,248 @@
     }
 
     function loadClass(name) {
+        let classData = db[name];
+        if (Array.isArray(classData)) {
+            classData = { students: classData, rules: [] };
+            db[name] = classData;
+            localStorage.setItem('gruppslumpare_db', JSON.stringify(db));
+        }
         currentClass.name = name;
-        currentClass.students = db[name];
+        currentClass.students = classData.students;
+        currentClass.rules = classData.rules || [];
+        
+        hasDuplicates = false;
+        document.getElementById('duplicate-warning').style.display = 'none';
+        document.getElementById('rawNamesInput').classList.remove('input-error');
+        document.getElementById('btn-slumpa-main').disabled = false;
+        document.getElementById('btn-slumpa-main').textContent = "SLUMPA GRUPPER 🎲";
+
         document.getElementById('classNameInput').value = name === "Ofrälst klass" ? "" : name;
+        document.getElementById('header-class-name').textContent = name;
         document.getElementById('rawNamesInput').value = currentClass.students.map(s => s.name).join("\n");
         renderStudentGrid();
+        renderRules();
+        
+        // Återställ eventuell groupSize konflikt (om laddad klass kräver större grupp än vad rutan står på)
+        const sizeInput = document.getElementById('groupSize');
+        const maxClust = getMaxClusterSize();
+        if(parseInt(sizeInput.value) < maxClust) sizeInput.value = maxClust;
+
         showView('view-edit');
     }
 
-    function deleteCurrentList() {
-        if(confirm("Är du säker på att du vill radera denna klass helt?")) {
-            if (currentClass.name && db[currentClass.name]) {
-                delete db[currentClass.name];
-                localStorage.setItem('gruppslumpare_db', JSON.stringify(db));
-            }
-            showView('view-start');
+    // --- PRIVACY MODE ---
+    function togglePrivacy() {
+        privacyMode = !privacyMode;
+        const btn = document.getElementById('privacy-toggle-btn');
+        const rulesList = document.getElementById('rules-list');
+        const builder = document.getElementById('rule-builder-panel');
+
+        if (privacyMode) {
+            btn.classList.add('active');
+            rulesList.classList.add('privacy-blur');
+            builder.classList.add('privacy-blur');
+        } else {
+            btn.classList.remove('active');
+            rulesList.classList.remove('privacy-blur');
+            builder.classList.remove('privacy-blur');
         }
     }
 
-    function generateGroups() {
-        const activeNames = currentClass.students.filter(s => s.active).map(s => s.name);
-        if (activeNames.length === 0) return alert("Inga elever är markerade som närvarande!");
+    // --- REGELLOGIK OCH PICKERS ---
 
-        let shuffledStudents = [...activeNames];
-        for (let i = shuffledStudents.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [shuffledStudents[i], shuffledStudents[j]] = [shuffledStudents[j], shuffledStudents[i]];
+    function setMode(mode) {
+        selectedType = mode;
+        const btnTogether = document.getElementById('btn-mode-together');
+        const btnApart = document.getElementById('btn-mode-apart');
+        if (mode === 'together') { btnTogether.classList.add('active-together'); btnApart.classList.remove('active-apart'); } 
+        else { btnTogether.classList.remove('active-together'); btnApart.classList.add('active-apart'); }
+    }
+
+    function updatePickers() {
+        const activeNames = currentClass.students.filter(s => s.active).map(s => s.name).sort((a,b) => a.localeCompare(b, 'sv'));
+        const p1 = document.getElementById('picker-s1');
+        const p2 = document.getElementById('picker-s2');
+        p1.innerHTML = ''; p2.innerHTML = '';
+
+        if (!activeNames.includes(selectedS1)) selectedS1 = null;
+        if (!activeNames.includes(selectedS2)) selectedS2 = null;
+
+        activeNames.forEach(name => {
+            const div1 = document.createElement('div');
+            div1.className = `picker-item ${name === selectedS1 ? 'selected' : ''}`;
+            div1.textContent = name;
+            div1.onclick = () => { selectedS1 = name; if (selectedS2) attemptAutoSave(); else updatePickers(); };
+            p1.appendChild(div1);
+
+            const div2 = document.createElement('div');
+            div2.className = `picker-item ${name === selectedS2 ? 'selected' : ''}`;
+            div2.textContent = name;
+            div2.onclick = () => { selectedS2 = name; if (selectedS1) attemptAutoSave(); else updatePickers(); };
+            p2.appendChild(div2);
+        });
+    }
+
+    function attemptAutoSave() {
+        const newRule = { s1: selectedS1, s2: selectedS2, type: selectedType };
+        const validation = validateRuleAddition(newRule);
+
+        if (!validation.valid) {
+            showToast(validation.msg, 'error');
+            if (validation.conflicts) highlightRules(validation.conflicts);
+            selectedS1 = null; selectedS2 = null;
+            updatePickers();
+            return;
         }
+
+        if (!currentClass.rules) currentClass.rules = [];
+        const existingIndex = currentClass.rules.findIndex(r => 
+            (r.s1 === newRule.s1 && r.s2 === newRule.s2) || (r.s1 === newRule.s2 && r.s2 === newRule.s1)
+        );
+
+        if (existingIndex > -1) {
+            currentClass.rules[existingIndex].type = newRule.type;
+            showToast("Regel uppdaterad.", "success");
+        } else {
+            currentClass.rules.push(newRule);
+        }
+
+        selectedS1 = null; selectedS2 = null;
+        updatePickers();
+        autoSave();
+        renderRules();
+    }
+
+    function toggleRule(index) {
+        const r = currentClass.rules[index];
+        const oldType = r.type;
+        r.type = r.type === 'together' ? 'apart' : 'together';
+        
+        const validation = validateRuleAddition(r, index);
+        
+        if(!validation.valid) {
+            r.type = oldType; // Återställ
+            showToast(`Kunde inte byta: ${validation.msg}`, 'error');
+            if (validation.conflicts) highlightRules(validation.conflicts);
+        } else {
+            autoSave();
+            renderRules();
+        }
+    }
+
+    function highlightRules(indices) {
+        const ruleElements = document.querySelectorAll('.rule-item');
+        indices.forEach(idx => {
+            if (ruleElements[idx]) {
+                ruleElements[idx].classList.add('conflict-highlight');
+                // Remove highlight after 3 seconds
+                setTimeout(() => ruleElements[idx].classList.remove('conflict-highlight'), 3000);
+            }
+        });
+    }
+
+    function validateRuleAddition(newRule, excludeIndex = -1) {
+        if (newRule.s1 === newRule.s2) return { valid: false, msg: "Du kan inte tvinga/förbjuda en elev med sig själv." };
+
+        let testRules = currentClass.rules ? currentClass.rules.filter((_, idx) => idx !== excludeIndex) : [];
+        testRules.push(newRule);
+
+        let activeNames = currentClass.students.filter(s => s.active).map(s => s.name);
+        
+        let parent = {};
+        activeNames.forEach(n => parent[n] = n);
+        function find(i) { return parent[i] === i ? i : (parent[i] = find(parent[i])); }
+        function union(i, j) { parent[find(i)] = find(j); }
+
+        testRules.filter(r => r.type === 'together').forEach(r => {
+            if(activeNames.includes(r.s1) && activeNames.includes(r.s2)) union(r.s1, r.s2);
+        });
+
+        let clusterSizes = {};
+        activeNames.forEach(n => {
+            let root = find(n);
+            clusterSizes[root] = (clusterSizes[root] || 0) + 1;
+        });
+        
+        const targetSize = parseInt(document.getElementById('groupSize').value) || 4;
+        let tooBigRoot = Object.keys(clusterSizes).find(root => clusterSizes[root] > targetSize);
+        if (tooBigRoot) {
+            // Animerar gruppstorleken ifall användaren inte tittar där
+            const input = document.getElementById('groupSize');
+            input.classList.remove('pulse-error');
+            void input.offsetWidth;
+            input.classList.add('pulse-error');
+            
+            return { valid: false, msg: `Regeln bygger en oavskiljbar klump större än din valda maxstorlek (${targetSize}). Höj gruppstorleken först!` };
+        }
+
+        let conflictingRulesIndices = [];
+        for (let i = 0; i < testRules.length; i++) {
+            let r = testRules[i];
+            if (r.type === 'apart' && activeNames.includes(r.s1) && activeNames.includes(r.s2)) {
+                if (find(r.s1) === find(r.s2)) { 
+                    conflictingRulesIndices.push(i);
+                    currentClass.rules.forEach((existingRule, idx) => {
+                        if (idx !== excludeIndex && existingRule.type === 'together' && 
+                           (find(existingRule.s1) === find(r.s1) || find(existingRule.s2) === find(r.s1))) {
+                            conflictingRulesIndices.push(idx);
+                        }
+                    });
+                    return { valid: false, msg: "Paradox! Dessa elever tvingas redan ihop av befintliga regler (markerade i rött).", conflicts: conflictingRulesIndices };
+                }
+            }
+        }
+        return { valid: true };
+    }
+
+    function removeRule(index) {
+        currentClass.rules.splice(index, 1);
+        autoSave();
+        renderRules();
+    }
+
+    function renderRules() {
+        const container = document.getElementById('rules-list');
+        container.innerHTML = "";
+        
+        if (!currentClass.rules || currentClass.rules.length === 0) {
+            container.innerHTML = "<div style='padding: 10px; color: var(--text-dim); font-size: 0.85rem; text-align: center;'>Inga specialregler aktiva.</div>";
+            return;
+        }
+
+        currentClass.rules.forEach((rule, index) => {
+            const div = document.createElement('div');
+            div.className = 'rule-item';
+            div.id = `rule-row-${index}`;
+            
+            const btnClass = rule.type === 'together' ? 'together' : 'apart';
+            const btnText = rule.type === 'together' ? '✓ MÅSTE VARA MED' : '✕ FÅR INTE VARA MED';
+            
+            div.innerHTML = `
+                <b style="width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${rule.s1}</b> 
+                <button class="rule-toggle-btn ${btnClass}" onclick="toggleRule(${index})" title="Klicka för att flippa regeln">${btnText}</button> 
+                <b style="width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right;">${rule.s2}</b>
+                <button class="btn-small" style="margin-left: 5px;" onclick="removeRule(${index})">X</button>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    // --- GRUPPGENERERING ---
+
+    function generateGroups() {
+        if (hasDuplicates) return showToast("Fixa dubbla namn först!", "warning");
+        
+        const activeNames = currentClass.students.filter(s => s.active).map(s => s.name);
+        if (activeNames.length === 0) return showToast("Inga elever är markerade som närvarande!", "warning");
 
         const targetSize = parseInt(document.getElementById('groupSize').value) || 4;
         const mode = document.getElementById('logicMode').value;
-        const total = shuffledStudents.length;
+        const total = activeNames.length;
         let sizes = [];
 
         if (mode === 'overfill') {
-            for (let i = 0; i < total; i += targetSize) {
-                sizes.push(Math.min(targetSize, total - i));
-            }
+            for (let i = 0; i < total; i += targetSize) sizes.push(Math.min(targetSize, total - i));
         } else {
             const numGroups = Math.ceil(total / targetSize);
             const baseSize = Math.floor(total / numGroups);
@@ -421,94 +766,115 @@
             sizes.sort((a,b) => b - a); 
         }
 
-        const useRandomNames = document.getElementById('useRandomNames').checked;
-        let shuffledNames = [...roligaLagnamn];
-        if (useRandomNames) {
-            for (let i = shuffledNames.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [shuffledNames[i], shuffledNames[j]] = [shuffledNames[j], shuffledNames[i]];
+        let rules = currentClass.rules || [];
+        rules = rules.filter(r => activeNames.includes(r.s1) && activeNames.includes(r.s2));
+        
+        let parent = {};
+        activeNames.forEach(n => parent[n] = n);
+        function find(i) { return parent[i] === i ? i : (parent[i] = find(parent[i])); }
+        function union(i, j) { parent[find(i)] = find(j); }
+        rules.filter(r => r.type === 'together').forEach(r => union(r.s1, r.s2));
+
+        let clusterMap = {};
+        activeNames.forEach(n => {
+            let root = find(n);
+            if(!clusterMap[root]) clusterMap[root] = [];
+            clusterMap[root].push(n);
+        });
+        
+        let clusters = Object.values(clusterMap); 
+        let apartRules = rules.filter(r => r.type === 'apart');
+        let validDistribution = null;
+
+        for (let attempt = 0; attempt < 200; attempt++) {
+            let currentGroups = sizes.map(s => ({ capacity: s, members: [] }));
+            let shuffledClusters = [...clusters].sort(() => Math.random() - 0.5);
+            let attemptSuccess = true;
+
+            for (let cluster of shuffledClusters) {
+                let validGroups = currentGroups.filter(g => {
+                    if (g.capacity < cluster.length) return false;
+                    for (let member of cluster) {
+                        for (let existingMember of g.members) {
+                            if (apartRules.some(r => 
+                                (r.s1 === member && r.s2 === existingMember) || 
+                                (r.s2 === member && r.s1 === existingMember)
+                            )) return false;
+                        }
+                    }
+                    return true;
+                });
+
+                if (validGroups.length === 0) { attemptSuccess = false; break; }
+                let chosenGroup = validGroups[Math.floor(Math.random() * validGroups.length)];
+                chosenGroup.members.push(...cluster);
+                chosenGroup.capacity -= cluster.length;
             }
+
+            if (attemptSuccess) { validDistribution = currentGroups.map(g => g.members); break; }
         }
+
+        if (!validDistribution) {
+            showToast("Matematiskt omöjligt! Prova att ta bort någon regel eller ändra gruppstorlek.", "error");
+            return;
+        }
+
+        const useRandomNames = document.getElementById('useRandomNames').checked;
+        let shuffledNames = [...roligaLagnamn].sort(() => Math.random() - 0.5);
 
         const grid = document.getElementById('results-grid');
         grid.innerHTML = "";
-        let currentPos = 0;
 
-        sizes.forEach((size, i) => {
-            const group = shuffledStudents.slice(currentPos, currentPos + size);
-            currentPos += size;
-            
+        validDistribution.forEach((groupMembers, i) => {
+            let displayGroup = [...groupMembers].sort(() => Math.random() - 0.5);
             const groupTitle = useRandomNames ? `Lag ${shuffledNames[i % shuffledNames.length]}` : `Grupp ${i+1}`;
-            
             const card = document.createElement('div');
             card.className = 'group-card';
             
-            // Uppdaterat för drag-and-drop: klassen 'drop-zone' på ul, 'draggable-student' och 'draggable="true"' på li
             card.innerHTML = `
                 <h3>${groupTitle}</h3>
                 <ul class="drop-zone">
-                    ${group.map(n => `<li draggable="true" class="draggable-student">${n}</li>`).join('')}
+                    ${displayGroup.map(n => `<li draggable="true" class="draggable-student">${n}</li>`).join('')}
                 </ul>
             `;
             grid.appendChild(card);
         });
 
-        setupDragAndDrop(); // Aktiverar logiken direkt när grupperna har skapats
+        setupDragAndDrop();
         showView('view-results');
     }
 
-    // --- Drag and Drop Logik ---
+    // --- Drag and Drop ---
     function setupDragAndDrop() {
         const draggables = document.querySelectorAll('.draggable-student');
         const dropZones = document.querySelectorAll('.drop-zone');
 
         draggables.forEach(draggable => {
-            draggable.addEventListener('dragstart', () => {
-                draggable.classList.add('dragging');
-            });
-
-            draggable.addEventListener('dragend', () => {
-                draggable.classList.remove('dragging');
-            });
+            draggable.addEventListener('dragstart', () => draggable.classList.add('dragging'));
+            draggable.addEventListener('dragend', () => draggable.classList.remove('dragging'));
         });
 
         dropZones.forEach(zone => {
             zone.addEventListener('dragover', e => {
-                e.preventDefault(); // Detta tillåter släpp
+                e.preventDefault(); 
                 zone.classList.add('drag-over');
-                
                 const afterElement = getDragAfterElement(zone, e.clientY);
                 const draggable = document.querySelector('.dragging');
-                
-                if (afterElement == null) {
-                    zone.appendChild(draggable);
-                } else {
-                    zone.insertBefore(draggable, afterElement);
-                }
+                if (afterElement == null) zone.appendChild(draggable);
+                else zone.insertBefore(draggable, afterElement);
             });
-
-            zone.addEventListener('dragleave', () => {
-                zone.classList.remove('drag-over');
-            });
-
-            zone.addEventListener('drop', () => {
-                zone.classList.remove('drag-over');
-            });
+            zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+            zone.addEventListener('drop', () => zone.classList.remove('drag-over'));
         });
     }
 
-    // Beräknar var i listan elementet ska släppas
     function getDragAfterElement(container, y) {
         const draggableElements = [...container.querySelectorAll('.draggable-student:not(.dragging)')];
-
         return draggableElements.reduce((closest, child) => {
             const box = child.getBoundingClientRect();
             const offset = y - box.top - box.height / 2;
-            if (offset < 0 && offset > closest.offset) {
-                return { offset: offset, element: child };
-            } else {
-                return closest;
-            }
+            if (offset < 0 && offset > closest.offset) return { offset: offset, element: child };
+            else return closest;
         }, { offset: Number.NEGATIVE_INFINITY }).element;
     }
 </script>
