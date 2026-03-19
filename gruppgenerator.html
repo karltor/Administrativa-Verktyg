@@ -29,7 +29,8 @@
             overflow: hidden;
         }
 
-        .app-container { width: 100%; height: 100%; display: flex; flex-direction: column; }
+        /* Nyhet: Max-width så den inte blir oändligt bred på Ultrawide-skärmar */
+        .app-container { width: 100%; max-width: 1600px; margin: 0 auto; height: 100%; display: flex; flex-direction: column; }
 
         /* Views */
         .view { display: none; height: 100%; flex-direction: column; }
@@ -74,7 +75,6 @@
         .input-error { border: 2px solid var(--danger) !important; background: var(--danger-bg) !important; }
         .duplicate-warning { background: var(--danger); color: white; font-size: 0.85rem; padding: 8px; border-radius: 4px; margin-bottom: 10px; font-weight: bold; display: none; }
 
-        /* Animation för för liten gruppstorlek */
         @keyframes pulseError {
             0% { transform: scale(1); border-color: var(--border); }
             50% { transform: scale(1.08); border-color: var(--danger); background: var(--danger-bg); box-shadow: 0 0 10px rgba(220, 38, 38, 0.3); }
@@ -103,12 +103,26 @@
         .chip:hover { background: #cbd5e1; }
         .chip.inactive { opacity: 0.4; text-decoration: line-through; background: #f1f5f9; }
 
-        /* Regellistan */
-        .rules-list-container { flex-grow: 1; overflow-y: auto; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 5px; }
-        .rule-item { display: flex; justify-content: space-between; align-items: center; background: #fff; border: 1px solid var(--border); padding: 6px 10px; border-radius: 4px; margin-bottom: 4px; font-size: 0.85rem; transition: all 0.3s;}
-        .rule-item.conflict-highlight { border-color: var(--danger); background: var(--danger-bg); box-shadow: 0 0 8px rgba(220, 38, 38, 0.5); transform: scale(1.01); z-index: 2; position: relative;}
+        /* Regellistan - Uppdaterad till ett rutnät! */
+        .rules-list-container { 
+            flex-grow: 1; overflow-y: auto; background: var(--bg); border: 1px solid var(--border); 
+            border-radius: 6px; padding: 10px; 
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 8px; align-content: start;
+        }
         
-        .rule-toggle-btn { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 900; cursor: pointer; border: 1px solid transparent; transition: 0.1s; flex-grow: 1; text-align: center; margin: 0 10px; }
+        /* Regel-kortet: Fastare, snyggare, krockar inte */
+        .rule-item { 
+            display: flex; justify-content: space-between; align-items: center; background: #fff; 
+            border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px; 
+            font-size: 0.85rem; margin: 0; transition: all 0.3s; box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+        }
+        .rule-item.conflict-highlight { border-color: var(--danger); background: var(--danger-bg); box-shadow: 0 0 8px rgba(220, 38, 38, 0.5); transform: scale(1.02); z-index: 2; position: relative;}
+        
+        /* Knappen fixad: Fast bredd */
+        .rule-toggle-btn { 
+            width: 145px; flex-shrink: 0; padding: 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 900; 
+            cursor: pointer; border: 1px solid transparent; transition: 0.1s; text-align: center; margin: 0 10px; 
+        }
         .rule-toggle-btn.together { background: var(--success-bg); color: var(--success); border-color: #a7f3d0; }
         .rule-toggle-btn.apart { background: var(--danger-bg); color: var(--danger); border-color: #fca5a5; }
         .rule-toggle-btn:hover { filter: brightness(0.95); border-color: var(--text-dim); }
@@ -143,7 +157,7 @@
 
         @media (max-width: 1000px) { body { overflow: auto; } .dashboard-grid { grid-template-columns: 1fr; height: auto; } .panel { min-height: 400px; } }
 
-        /* --- MODALER OCH TOASTS (NYTT) --- */
+        /* --- MODALER OCH TOASTS --- */
         #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;}
         .toast { background: var(--card-bg); color: var(--text); padding: 12px 20px; border-radius: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); font-weight: 500; font-size: 0.9rem; display: flex; align-items: center; gap: 10px; animation: slideInRight 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; min-width: 250px;}
         .toast.error { border-left: 5px solid var(--danger); }
@@ -287,7 +301,6 @@
     let currentClass = { name: "", students: [], rules: [] };
     let db = JSON.parse(localStorage.getItem('gruppslumpare_db') || '{}');
     
-    // UI State
     let selectedS1 = null;
     let selectedS2 = null;
     let selectedType = 'together'; 
@@ -361,20 +374,17 @@
         autoSave();
     }
 
-    // --- GRUPPSTORLEK VALIDERING I REALTID ---
     function handleGroupSizeChange(input) {
         const targetSize = parseInt(input.value) || 2;
         const maxCluster = getMaxClusterSize();
         
         if (targetSize < maxCluster) {
-            // Revert value
             input.value = maxCluster;
-            // Animera rutan
             input.classList.remove('pulse-error');
-            void input.offsetWidth; // trigger reflow
+            void input.offsetWidth;
             input.classList.add('pulse-error');
             
-            showToast(`Dina specialregler tvingar ihop en grupp på ${maxCluster} elever. Du kan inte sänka gruppstorleken mer om du inte tar bort den regeln.`, 'error');
+            showToast(`Dina specialregler tvingar ihop en grupp på ${maxCluster} elever. Du kan inte sänka storleken mer om du inte tar bort den regeln.`, 'error');
         }
     }
 
@@ -401,7 +411,6 @@
         return max;
     }
 
-    // --- NAMN & DUBBLETTER ---
     function parseNames() {
         const input = document.getElementById('rawNamesInput').value;
         const rawNames = input.split(/[\n,]+/).map(n => n.trim()).filter(n => n !== "");
@@ -425,7 +434,7 @@
             slumpaBtn.disabled = true;
             slumpaBtn.textContent = "FIXA NAMNEN FÖRST";
         } else {
-            if(hasDuplicates) { // Endast ta bort varningen om den var där innan
+            if(hasDuplicates) { 
                 hasDuplicates = false;
                 dupWarning.style.display = 'none';
                 textarea.classList.remove('input-error');
@@ -535,7 +544,6 @@
         renderStudentGrid();
         renderRules();
         
-        // Återställ eventuell groupSize konflikt (om laddad klass kräver större grupp än vad rutan står på)
         const sizeInput = document.getElementById('groupSize');
         const maxClust = getMaxClusterSize();
         if(parseInt(sizeInput.value) < maxClust) sizeInput.value = maxClust;
@@ -543,7 +551,6 @@
         showView('view-edit');
     }
 
-    // --- PRIVACY MODE ---
     function togglePrivacy() {
         privacyMode = !privacyMode;
         const btn = document.getElementById('privacy-toggle-btn');
@@ -560,8 +567,6 @@
             builder.classList.remove('privacy-blur');
         }
     }
-
-    // --- REGELLOGIK OCH PICKERS ---
 
     function setMode(mode) {
         selectedType = mode;
@@ -633,7 +638,7 @@
         const validation = validateRuleAddition(r, index);
         
         if(!validation.valid) {
-            r.type = oldType; // Återställ
+            r.type = oldType; 
             showToast(`Kunde inte byta: ${validation.msg}`, 'error');
             if (validation.conflicts) highlightRules(validation.conflicts);
         } else {
@@ -647,7 +652,6 @@
         indices.forEach(idx => {
             if (ruleElements[idx]) {
                 ruleElements[idx].classList.add('conflict-highlight');
-                // Remove highlight after 3 seconds
                 setTimeout(() => ruleElements[idx].classList.remove('conflict-highlight'), 3000);
             }
         });
@@ -679,7 +683,6 @@
         const targetSize = parseInt(document.getElementById('groupSize').value) || 4;
         let tooBigRoot = Object.keys(clusterSizes).find(root => clusterSizes[root] > targetSize);
         if (tooBigRoot) {
-            // Animerar gruppstorleken ifall användaren inte tittar där
             const input = document.getElementById('groupSize');
             input.classList.remove('pulse-error');
             void input.offsetWidth;
@@ -731,10 +734,10 @@
             const btnText = rule.type === 'together' ? '✓ MÅSTE VARA MED' : '✕ FÅR INTE VARA MED';
             
             div.innerHTML = `
-                <b style="width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${rule.s1}</b> 
+                <b style="flex: 1; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${rule.s1}</b> 
                 <button class="rule-toggle-btn ${btnClass}" onclick="toggleRule(${index})" title="Klicka för att flippa regeln">${btnText}</button> 
-                <b style="width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right;">${rule.s2}</b>
-                <button class="btn-small" style="margin-left: 5px;" onclick="removeRule(${index})">X</button>
+                <b style="flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${rule.s2}</b>
+                <button class="btn-small" style="margin-left: 10px;" onclick="removeRule(${index})">✕</button>
             `;
             container.appendChild(div);
         });
