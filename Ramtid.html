@@ -227,7 +227,7 @@
             { id: 'mon', name: 'Mån' },
             { id: 'tue', name: 'Tis' },
             { id: 'wed', name: 'Ons' },
-            { id: 'thu', name: 'Tor' },
+            { id: 'thu', name: 'Tors' }, // Ändrat till 'Tors' för snyggare kopiering
             { id: 'fri', name: 'Fre' }
         ];
 
@@ -350,9 +350,23 @@
             days.forEach(day => {
                 const start = document.getElementById(`start-${day.id}`).value;
                 const end = document.getElementById(`end-${day.id}`).value;
+                const lunch = document.getElementById(`lunch-${day.id}`).value;
                 
                 if (start && end) {
-                    exportText += `${day.name}dag: ${start} - ${end}\n`;
+                    // Räkna ut timmarna för kopieringen
+                    const s = timeToDecimal(start);
+                    let e = timeToDecimal(end);
+                    const l = timeToDecimal(lunch);
+
+                    if (e < s) e += 24; 
+
+                    let dayHours = e - s - l;
+                    if (dayHours < 0) dayHours = 0;
+
+                    // Formatera snyggt, t.ex. 7.5 blir "7,5" och 8.0 blir "8"
+                    let formattedHours = parseFloat(dayHours.toFixed(2)).toString().replace('.', ',');
+
+                    exportText += `${day.name}dag: ${start} - ${end} (${formattedHours} timmar)\n`;
                 }
             });
 
