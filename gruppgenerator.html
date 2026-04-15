@@ -151,9 +151,10 @@
         .group-card { background: var(--card-bg); border-radius: 6px; padding: 15px; border-top: 4px solid var(--accent); box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; }
         .drop-zone { list-style: none; padding: 0; margin: 0; min-height: 50px; flex-grow: 1; border-radius: 4px; }
         .drop-zone.drag-over { background-color: #f8fafc; outline: 2px dashed var(--accent); }
-        .draggable-student { padding: 6px 8px; border-bottom: 1px solid #f1f5f9; cursor: grab; font-size: 0.95rem; background: white; }
+        .draggable-student { padding: 10px 8px; border-bottom: 1px solid #f1f5f9; cursor: grab; font-size: 0.95rem; background: white; touch-action: none; -webkit-user-select: none; user-select: none; }
         .draggable-student:active { cursor: grabbing; }
         .draggable-student.dragging { opacity: 0.5; background-color: #e2e8f0; }
+        .draggable-student.touch-ghost { position: fixed; pointer-events: none; z-index: 9999; opacity: 0.9; box-shadow: 0 8px 20px rgba(0,0,0,0.25); border-radius: 6px; border: 2px solid var(--accent); background: white; transform: translate(-50%, -50%); }
 
         @media (max-width: 1000px) { body { overflow: auto; } .dashboard-grid { grid-template-columns: 1fr; height: auto; } .panel { min-height: 400px; } }
 
@@ -853,13 +854,20 @@
         const dropZones = document.querySelectorAll('.drop-zone');
 
         draggables.forEach(draggable => {
+            // Mus / native drag (desktop)
             draggable.addEventListener('dragstart', () => draggable.classList.add('dragging'));
             draggable.addEventListener('dragend', () => draggable.classList.remove('dragging'));
+
+            // Touch / pekskärm
+            draggable.addEventListener('touchstart', handleTouchStart, { passive: false });
+            draggable.addEventListener('touchmove', handleTouchMove, { passive: false });
+            draggable.addEventListener('touchend', handleTouchEnd);
+            draggable.addEventListener('touchcancel', handleTouchEnd);
         });
 
         dropZones.forEach(zone => {
             zone.addEventListener('dragover', e => {
-                e.preventDefault(); 
+                e.preventDefault();
                 zone.classList.add('drag-over');
                 const afterElement = getDragAfterElement(zone, e.clientY);
                 const draggable = document.querySelector('.dragging');
@@ -869,6 +877,85 @@
             zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
             zone.addEventListener('drop', () => zone.classList.remove('drag-over'));
         });
+    }
+
+    // --- Touch drag (mobil) ---
+    let touchGhost = null;
+    let touchDragEl = null;
+    let touchHoldTimer = null;
+    let touchStartPos = null;
+    let touchDragging = false;
+
+    function handleTouchStart(e) {
+        if (e.touches.length !== 1) return;
+        touchDragEl = e.currentTarget;
+        const t = e.touches[0];
+        touchStartPos = { x: t.clientX, y: t.clientY };
+        touchDragging = false;
+
+        // Liten fördröjning så att vanlig scroll fortfarande funkar
+        touchHoldTimer = setTimeout(() => {
+            startTouchDrag(t.clientX, t.clientY);
+        }, 150);
+    }
+
+    function startTouchDrag(x, y) {
+        if (!touchDragEl) return;
+        touchDragging = true;
+        touchDragEl.classList.add('dragging');
+
+        touchGhost = touchDragEl.cloneNode(true);
+        touchGhost.classList.remove('dragging');
+        touchGhost.classList.add('touch-ghost');
+        touchGhost.style.width = touchDragEl.offsetWidth + 'px';
+        touchGhost.style.left = x + 'px';
+        touchGhost.style.top = y + 'px';
+        document.body.appendChild(touchGhost);
+    }
+
+    function handleTouchMove(e) {
+        if (!touchDragEl) return;
+        const t = e.touches[0];
+
+        if (!touchDragging) {
+            // Om fingret rör sig mer än en liten bit innan hold-timern slår till = scroll
+            const dx = t.clientX - touchStartPos.x;
+            const dy = t.clientY - touchStartPos.y;
+            if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+                clearTimeout(touchHoldTimer);
+                touchDragEl = null;
+            }
+            return;
+        }
+
+        e.preventDefault();
+        touchGhost.style.left = t.clientX + 'px';
+        touchGhost.style.top = t.clientY + 'px';
+
+        // Hitta drop-zone under fingret
+        touchGhost.style.display = 'none';
+        const elBelow = document.elementFromPoint(t.clientX, t.clientY);
+        touchGhost.style.display = '';
+
+        document.querySelectorAll('.drop-zone.drag-over').forEach(z => z.classList.remove('drag-over'));
+
+        const zone = elBelow ? elBelow.closest('.drop-zone') : null;
+        if (zone) {
+            zone.classList.add('drag-over');
+            const afterElement = getDragAfterElement(zone, t.clientY);
+            if (afterElement == null) zone.appendChild(touchDragEl);
+            else zone.insertBefore(touchDragEl, afterElement);
+        }
+    }
+
+    function handleTouchEnd() {
+        clearTimeout(touchHoldTimer);
+        if (touchGhost) { touchGhost.remove(); touchGhost = null; }
+        if (touchDragEl) touchDragEl.classList.remove('dragging');
+        document.querySelectorAll('.drop-zone.drag-over').forEach(z => z.classList.remove('drag-over'));
+        touchDragEl = null;
+        touchDragging = false;
+        touchStartPos = null;
     }
 
     function getDragAfterElement(container, y) {
