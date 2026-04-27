@@ -50,6 +50,13 @@
             border: 1px solid #ccc;
             border-radius: 4px;
         }
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            user-select: none;
+        }
     </style>
 </head>
 <body>
@@ -59,8 +66,11 @@
     <div class="toolbar">
         <input type="file" id="upload" accept="image/*">
         <label>
-            Tid (sekunder): 
+            Tid (sek): 
             <input type="number" id="duration" value="2" min="0.5" max="10" step="0.5">
+        </label>
+        <label class="checkbox-label">
+            <input type="checkbox" id="aspectLock" checked> Lås proportioner
         </label>
         <button id="previewBtn">▶️ Förhandsgranska</button>
         <button id="saveBtn">💾 Spara som WebM</button>
@@ -107,12 +117,11 @@
             ctx.drawImage(img, 0, 0);
             
             if (selection) {
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-                // Rita mörk bakgrund utanför markeringen
-                ctx.fillRect(0, 0, canvas.width, selection.y); // Topp
-                ctx.fillRect(0, selection.y + selection.h, canvas.width, canvas.height - (selection.y + selection.h)); // Botten
-                ctx.fillRect(0, selection.y, selection.x, selection.h); // Vänster
-                ctx.fillRect(selection.x + selection.w, selection.y, canvas.width - (selection.x + selection.w), selection.h); // Höger
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.fillRect(0, 0, canvas.width, selection.y);
+                ctx.fillRect(0, selection.y + selection.h, canvas.width, canvas.height - (selection.y + selection.h));
+                ctx.fillRect(0, selection.y, selection.x, selection.h);
+                ctx.fillRect(selection.x + selection.w, selection.y, canvas.width - (selection.x + selection.w), selection.h);
                 
                 ctx.strokeStyle = '#00ff00';
                 ctx.lineWidth = 3;
@@ -120,7 +129,7 @@
             }
         }
 
-        // Hantera mus-klick och drag för att markera område
+        // Hantera mus-klick och drag
         canvas.addEventListener('mousedown', (e) => {
             if (!img) return;
             const rect = canvas.getBoundingClientRect();
@@ -136,19 +145,40 @@
             const rect = canvas.getBoundingClientRect();
             const scaleX = canvas.width / rect.width;
             const scaleY = canvas.height / rect.height;
-            const currentX = (e.clientX - rect.left) * scaleX;
-            const currentY = (e.clientY - rect.top) * scaleY;
+            
+            let currentX = (e.clientX - rect.left) * scaleX;
+            let currentY = (e.clientY - rect.top) * scaleY;
+
+            let w = Math.abs(currentX - startX);
+            let h = Math.abs(currentY - startY);
+
+            // Logiken för att låsa proportionerna
+            if (document.getElementById('aspectLock').checked) {
+                const imgRatio = canvas.width / canvas.height;
+                
+                // Anpassa bredd eller höjd för att behålla bildens ratio
+                if (w / imgRatio > h) {
+                    h = w / imgRatio;
+                } else {
+                    w = h * imgRatio;
+                }
+                
+                // Räkna ut rätt riktning beroende på hur du drar musen
+                currentX = startX < currentX ? startX + w : startX - w;
+                currentY = startY < currentY ? startY + h : startY - h;
+            }
 
             selection = {
                 x: Math.min(startX, currentX),
                 y: Math.min(startY, currentY),
-                w: Math.abs(currentX - startX),
-                h: Math.abs(currentY - startY)
+                w: w,
+                h: h
             };
             drawBase();
         });
 
         window.addEventListener('mouseup', () => { isDragging = false; });
+        window.addEventListener('mouseleave', () => { isDragging = false; });
 
         // Animationslogik
         function playAnimation(durationSec, onComplete = null) {
@@ -160,11 +190,8 @@
 
             function render() {
                 let progress = frame / totalFrames;
-                
-                // Mjuk in- och utbromsning (Smoothstep)
-                let p = progress * progress * (3 - 2 * progress);
+                let p = progress * progress * (3 - 2 * progress); // Smoothstep
 
-                // Beräkna nuvarande position
                 const currentX = 0 + (selection.x - 0) * p;
                 const currentY = 0 + (selection.y - 0) * p;
                 const currentW = canvas.width + (selection.w - canvas.width) * p;
@@ -178,7 +205,7 @@
                     animId = requestAnimationFrame(render);
                 } else {
                     if (onComplete) onComplete();
-                    setTimeout(drawBase, 1000); // Återställ vyn efter 1 sekund
+                    setTimeout(drawBase, 1000);
                 }
             }
             render();
@@ -194,7 +221,6 @@
             if (!img || !selection) return alert("Vänligen markera ett område på bilden först!");
             const duration = parseFloat(document.getElementById('duration').value) || 2;
 
-            // Fånga canvas-strömmen och spela in (60 FPS)
             const stream = canvas.captureStream(60);
             const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
             const chunks = [];
