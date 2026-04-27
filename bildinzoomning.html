@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bild-Zoom-Verktyg</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        .toolbar {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        canvas {
+            background: #fff;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            cursor: crosshair;
+            max-width: 100%;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        button, input[type="file"]::file-selector-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover, input[type="file"]::file-selector-button:hover {
+            background: #0056b3;
+        }
+        input[type="number"] {
+            padding: 6px;
+            width: 60px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>🔍 Skapa Zoom-animation</h2>
+    
+    <div class="toolbar">
+        <input type="file" id="upload" accept="image/*">
+        <label>
+            Tid (sekunder): 
+            <input type="number" id="duration" value="2" min="0.5" max="10" step="0.5">
+        </label>
+        <button id="previewBtn">▶️ Förhandsgranska</button>
+        <button id="saveBtn">💾 Spara som WebM</button>
+    </div>
+
+    <p style="font-size: 0.9em; color: #666;">
+        <em>Instruktion: Ladda upp en bild, klicka och dra på bilden för att markera var zoomen ska sluta.</em>
+    </p>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let img = null;
+        let selection = null;
+        let isDragging = false;
+        let startX, startY;
+        let animId = null;
+
+        // Ladda upp och rita bild
+        document.getElementById('upload').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                img = new Image();
+                img.onload = () => {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    selection = null;
+                    drawBase();
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Rita grundbilden och markeringen
+        function drawBase() {
+            if (!img) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+            
+            if (selection) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+                // Rita mörk bakgrund utanför markeringen
+                ctx.fillRect(0, 0, canvas.width, selection.y); // Topp
+                ctx.fillRect(0, selection.y + selection.h, canvas.width, canvas.height - (selection.y + selection.h)); // Botten
+                ctx.fillRect(0, selection.y, selection.x, selection.h); // Vänster
+                ctx.fillRect(selection.x + selection.w, selection.y, canvas.width - (selection.x + selection.w), selection.h); // Höger
+                
+                ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(selection.x, selection.y, selection.w, selection.h);
+            }
+        }
+
+        // Hantera mus-klick och drag för att markera område
+        canvas.addEventListener('mousedown', (e) => {
+            if (!img) return;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            startX = (e.clientX - rect.left) * scaleX;
+            startY = (e.clientY - rect.top) * scaleY;
+            isDragging = true;
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const currentX = (e.clientX - rect.left) * scaleX;
+            const currentY = (e.clientY - rect.top) * scaleY;
+
+            selection = {
+                x: Math.min(startX, currentX),
+                y: Math.min(startY, currentY),
+                w: Math.abs(currentX - startX),
+                h: Math.abs(currentY - startY)
+            };
+            drawBase();
+        });
+
+        window.addEventListener('mouseup', () => { isDragging = false; });
+
+        // Animationslogik
+        function playAnimation(durationSec, onComplete = null) {
+            if (!img || !selection) return alert("Vänligen markera ett område på bilden först!");
+            
+            cancelAnimationFrame(animId);
+            const totalFrames = durationSec * 60; // 60 FPS
+            let frame = 0;
+
+            function render() {
+                let progress = frame / totalFrames;
+                
+                // Mjuk in- och utbromsning (Smoothstep)
+                let p = progress * progress * (3 - 2 * progress);
+
+                // Beräkna nuvarande position
+                const currentX = 0 + (selection.x - 0) * p;
+                const currentY = 0 + (selection.y - 0) * p;
+                const currentW = canvas.width + (selection.w - canvas.width) * p;
+                const currentH = canvas.height + (selection.h - canvas.height) * p;
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, currentX, currentY, currentW, currentH, 0, 0, canvas.width, canvas.height);
+
+                frame++;
+                if (frame <= totalFrames) {
+                    animId = requestAnimationFrame(render);
+                } else {
+                    if (onComplete) onComplete();
+                    setTimeout(drawBase, 1000); // Återställ vyn efter 1 sekund
+                }
+            }
+            render();
+        }
+
+        // Knappar
+        document.getElementById('previewBtn').addEventListener('click', () => {
+            const duration = parseFloat(document.getElementById('duration').value) || 2;
+            playAnimation(duration);
+        });
+
+        document.getElementById('saveBtn').addEventListener('click', () => {
+            if (!img || !selection) return alert("Vänligen markera ett område på bilden först!");
+            const duration = parseFloat(document.getElementById('duration').value) || 2;
+
+            // Fånga canvas-strömmen och spela in (60 FPS)
+            const stream = canvas.captureStream(60);
+            const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+            const chunks = [];
+
+            recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+            recorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'zoom-animation.webm';
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+
+            recorder.start();
+            playAnimation(duration, () => {
+                recorder.stop();
+            });
+        });
+    </script>
+</body>
+</html>
