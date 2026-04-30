@@ -1,7 +1,9 @@
 <!DOCTYPE html><html><head><meta charset="utf-8"><title>Administrativa Verktyg</title>
 <style>body{font-family:sans-serif;max-width:1000px;margin:40px auto;background:#f4f4f9;padding:20px;}
 h1{color:#333;border-bottom:2px solid #ddd;padding-bottom:10px;}
-h2{color:#555;margin-top:0;}
+h2{margin-top:0;}
+h2 a{color:#555;background:none;box-shadow:none;padding:0;display:inline;font-size:inherit;}
+h2 a:hover{transform:none;box-shadow:none;background:none;color:#0066cc;text-decoration:underline;}
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
 .cols.single{grid-template-columns:1fr;max-width:600px;margin:0 auto;}
 ul{list-style:none;padding:0;} li{margin:10px 0;}
@@ -9,24 +11,31 @@ a{text-decoration:none;color:#0066cc;font-size:1.1rem;background:#fff;display:bl
 a:hover{transform:translateY(-2px);box-shadow:0 4px 8px rgba(0,0,0,0.15);background:#f0f7ff;}
 @media(max-width:700px){.cols{grid-template-columns:1fr;}}</style></head>
 <body><h1 id="title">🛠 Administrativa Verktyg</h1>
+<p id="back" style="display:none"><a href="./" style="display:inline-block;padding:8px 14px;font-size:0.95rem;">← Tillbaka till alla verktyg</a></p>
 <div class="cols" id="cols">
-<section id="admin"><h2>Administrativa</h2><ul>
+<section id="admin"><h2><a href="?administrativa">Administrativa</a></h2><ul>
 <li><a href='./Ramtid.html'>Ramtid</a></li>
 <li><a href='./gruppgenerator.html'>Gruppgenerator</a></li>
 <li><a href='./schemaskapare.html'>Schemaskapare</a></li>
 </ul></section>
-<section id="redigering"><h2>Redigering</h2><ul>
+<section id="redigering"><h2><a href="?redigering">Redigering</a></h2><ul>
 <li><a href='./redigering-Bildinzoomning.html'>Bildinzoomning</a></li>
 <li><a href='./redigering-Paint.html'>Paint</a></li>
 <li><a href='./redigering-Screencap.html'>Screencap</a></li>
 </ul></section>
 </div>
 <script>
-if(location.search.includes('redigering')){
+var q=location.search;
+if(q.includes('redigering')){
   document.getElementById('admin').style.display='none';
   document.getElementById('cols').classList.add('single');
   document.getElementById('title').textContent='🎨 Redigeringsverktyg';
   document.title='Redigeringsverktyg';
+  document.getElementById('back').style.display='block';
+}else if(q.includes('administrativa')){
+  document.getElementById('redigering').style.display='none';
+  document.getElementById('cols').classList.add('single');
+  document.getElementById('back').style.display='block';
 }
 </script>
 </body></html>
