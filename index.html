@@ -1,14 +1,32 @@
-<!DOCTYPE html><html><head><title>Administrativa Verktyg</title>
-<style>body{font-family:sans-serif;max-width:600px;margin:40px auto;background:#f4f4f9;padding:20px;}
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Administrativa Verktyg</title>
+<style>body{font-family:sans-serif;max-width:1000px;margin:40px auto;background:#f4f4f9;padding:20px;}
 h1{color:#333;border-bottom:2px solid #ddd;padding-bottom:10px;}
+h2{color:#555;margin-top:0;}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.cols.single{grid-template-columns:1fr;max-width:600px;margin:0 auto;}
 ul{list-style:none;padding:0;} li{margin:10px 0;}
 a{text-decoration:none;color:#0066cc;font-size:1.1rem;background:#fff;display:block;padding:15px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);transition:0.2s;}
-a:hover{transform:translateY(-2px);box-shadow:0 4px 8px rgba(0,0,0,0.15);background:#f0f7ff;}</style></head>
-<body><h1>🛠 Administrativa Verktyg</h1><ul>
-<li><a href='./Bildredigering-Paint.html'>Bildredigering Paint</a></li>
+a:hover{transform:translateY(-2px);box-shadow:0 4px 8px rgba(0,0,0,0.15);background:#f0f7ff;}
+@media(max-width:700px){.cols{grid-template-columns:1fr;}}</style></head>
+<body><h1 id="title">🛠 Administrativa Verktyg</h1>
+<div class="cols" id="cols">
+<section id="admin"><h2>Administrativa</h2><ul>
 <li><a href='./Ramtid.html'>Ramtid</a></li>
-<li><a href='./Videoredigering-Screencap.html'>Videoredigering Screencap</a></li>
-<li><a href='./bildinzoomning.html'>Bildinzoomning</a></li>
 <li><a href='./gruppgenerator.html'>Gruppgenerator</a></li>
 <li><a href='./schemaskapare.html'>Schemaskapare</a></li>
-</ul></body></html>
+</ul></section>
+<section id="redigering"><h2>Redigering</h2><ul>
+<li><a href='./redigering-Bildinzoomning.html'>Bildinzoomning</a></li>
+<li><a href='./redigering-Paint.html'>Paint</a></li>
+<li><a href='./redigering-Screencap.html'>Screencap</a></li>
+</ul></section>
+</div>
+<script>
+if(location.search.includes('redigering')){
+  document.getElementById('admin').style.display='none';
+  document.getElementById('cols').classList.add('single');
+  document.getElementById('title').textContent='🎨 Redigeringsverktyg';
+  document.title='Redigeringsverktyg';
+}
+</script>
+</body></html>
