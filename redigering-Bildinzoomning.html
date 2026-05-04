@@ -180,35 +180,38 @@
         window.addEventListener('mouseup', () => { isDragging = false; });
         window.addEventListener('mouseleave', () => { isDragging = false; });
 
-        // Animationslogik
+        // Animationslogik (Ombyggd till tidsbaserad för perfekt synk)
         function playAnimation(durationSec, onComplete = null) {
             if (!img || !selection) return alert("Vänligen markera ett område på bilden först!");
             
             cancelAnimationFrame(animId);
-            const totalFrames = durationSec * 60; // 60 FPS
-            let frame = 0;
+            const durationMs = durationSec * 1000;
+            let startTimestamp = null;
 
-            function render() {
-                let progress = frame / totalFrames;
+            function render(timestamp) {
+                if (!startTimestamp) startTimestamp = timestamp;
+                
+                // Räkna ut hur lång tid som faktiskt har passerat
+                let elapsed = timestamp - startTimestamp;
+                let progress = Math.min(elapsed / durationMs, 1);
                 let p = progress * progress * (3 - 2 * progress); // Smoothstep
 
-                const currentX = 0 + (selection.x - 0) * p;
-                const currentY = 0 + (selection.y - 0) * p;
+                const currentX = selection.x * p;
+                const currentY = selection.y * p;
                 const currentW = canvas.width + (selection.w - canvas.width) * p;
                 const currentH = canvas.height + (selection.h - canvas.height) * p;
 
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(img, currentX, currentY, currentW, currentH, 0, 0, canvas.width, canvas.height);
 
-                frame++;
-                if (frame <= totalFrames) {
+                if (progress < 1) {
                     animId = requestAnimationFrame(render);
                 } else {
                     if (onComplete) onComplete();
                     setTimeout(drawBase, 1000);
                 }
             }
-            render();
+            animId = requestAnimationFrame(render);
         }
 
         // Knappar
@@ -222,7 +225,21 @@
             const duration = parseFloat(document.getElementById('duration').value) || 2;
 
             const stream = canvas.captureStream(60);
-            const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+            
+            // Konfigurera inspelaren med hög bitrate för att förhindra lagg/artefakter
+            const options = {
+                mimeType: 'video/webm; codecs=vp9',
+                videoBitsPerSecond: 8000000 // 8 Mbps ger extremt mycket bättre kvalitet
+            };
+            
+            let recorder;
+            try {
+                recorder = new MediaRecorder(stream, options);
+            } catch (e) {
+                // Fallback om webbläsaren saknar stöd för vp9-flaggan
+                recorder = new MediaRecorder(stream, { videoBitsPerSecond: 8000000 });
+            }
+
             const chunks = [];
 
             recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
