@@ -180,29 +180,32 @@
         window.addEventListener('mouseup', () => { isDragging = false; });
         window.addEventListener('mouseleave', () => { isDragging = false; });
 
-        // Animationslogik (Ombyggd till tidsbaserad för perfekt synk)
+        // Rendera en enskild frame för en given progress (0..1)
+        function renderFrame(progress) {
+            const p = progress * progress * (3 - 2 * progress); // Smoothstep
+            const currentX = selection.x * p;
+            const currentY = selection.y * p;
+            const currentW = canvas.width + (selection.w - canvas.width) * p;
+            const currentH = canvas.height + (selection.h - canvas.height) * p;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, currentX, currentY, currentW, currentH, 0, 0, canvas.width, canvas.height);
+        }
+
+        // Realtids-preview (tidsbaserad)
         function playAnimation(durationSec, onComplete = null) {
             if (!img || !selection) return alert("Vänligen markera ett område på bilden först!");
-            
+
             cancelAnimationFrame(animId);
             const durationMs = durationSec * 1000;
             let startTimestamp = null;
 
             function render(timestamp) {
                 if (!startTimestamp) startTimestamp = timestamp;
-                
-                // Räkna ut hur lång tid som faktiskt har passerat
-                let elapsed = timestamp - startTimestamp;
-                let progress = Math.min(elapsed / durationMs, 1);
-                let p = progress * progress * (3 - 2 * progress); // Smoothstep
+                const elapsed = timestamp - startTimestamp;
+                const progress = Math.min(elapsed / durationMs, 1);
 
-                const currentX = selection.x * p;
-                const currentY = selection.y * p;
-                const currentW = canvas.width + (selection.w - canvas.width) * p;
-                const currentH = canvas.height + (selection.h - canvas.height) * p;
-
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(img, currentX, currentY, currentW, currentH, 0, 0, canvas.width, canvas.height);
+                renderFrame(progress);
 
                 if (progress < 1) {
                     animId = requestAnimationFrame(render);
@@ -214,49 +217,108 @@
             animId = requestAnimationFrame(render);
         }
 
+        // Deterministisk frame-by-frame-rendering för inspelning.
+        // Garanterar att alla frames (inkl. den helt inzoomade slutframen) hamnar i videon
+        // oavsett CPU-last eller FPS-drops.
+        async function recordAnimation(durationSec, fps, videoTrack) {
+            const totalFrames = Math.max(2, Math.round(durationSec * fps));
+            const frameDelay = 1000 / fps;
+
+            for (let i = 0; i < totalFrames; i++) {
+                const progress = i / (totalFrames - 1);
+                renderFrame(progress);
+                if (videoTrack && typeof videoTrack.requestFrame === 'function') {
+                    videoTrack.requestFrame();
+                }
+                await new Promise(r => setTimeout(r, frameDelay));
+            }
+
+            // Håll kvar slutframen några extra frames så att inspelaren hinner fånga den
+            for (let i = 0; i < 4; i++) {
+                renderFrame(1);
+                if (videoTrack && typeof videoTrack.requestFrame === 'function') {
+                    videoTrack.requestFrame();
+                }
+                await new Promise(r => setTimeout(r, frameDelay));
+            }
+        }
+
         // Knappar
         document.getElementById('previewBtn').addEventListener('click', () => {
             const duration = parseFloat(document.getElementById('duration').value) || 2;
             playAnimation(duration);
         });
 
-        document.getElementById('saveBtn').addEventListener('click', () => {
+        document.getElementById('saveBtn').addEventListener('click', async () => {
             if (!img || !selection) return alert("Vänligen markera ett område på bilden först!");
             const duration = parseFloat(document.getElementById('duration').value) || 2;
+            const fps = 60;
 
-            const stream = canvas.captureStream(60);
-            
-            // Konfigurera inspelaren med hög bitrate för att förhindra lagg/artefakter
-            const options = {
-                mimeType: 'video/webm; codecs=vp9',
-                videoBitsPerSecond: 8000000 // 8 Mbps ger extremt mycket bättre kvalitet
-            };
-            
+            cancelAnimationFrame(animId);
+
+            // captureStream(0) = manuellt frame-läge, vi pushar frames själva via requestFrame()
+            const stream = canvas.captureStream(0);
+            const videoTrack = stream.getVideoTracks()[0];
+
+            // Välj första mimetype som webbläsaren faktiskt stöder
+            const candidates = [
+                'video/webm;codecs=vp9',
+                'video/webm;codecs=vp8',
+                'video/webm'
+            ];
+            let mimeType = '';
+            for (const c of candidates) {
+                if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(c)) {
+                    mimeType = c;
+                    break;
+                }
+            }
+
+            const options = { videoBitsPerSecond: 8000000 };
+            if (mimeType) options.mimeType = mimeType;
+
             let recorder;
             try {
                 recorder = new MediaRecorder(stream, options);
             } catch (e) {
-                // Fallback om webbläsaren saknar stöd för vp9-flaggan
-                recorder = new MediaRecorder(stream, { videoBitsPerSecond: 8000000 });
+                recorder = new MediaRecorder(stream);
             }
 
             const chunks = [];
-
             recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-            recorder.onstop = () => {
-                const blob = new Blob(chunks, { type: 'video/webm' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'zoom-animation.webm';
-                a.click();
-                URL.revokeObjectURL(url);
-            };
 
-            recorder.start();
-            playAnimation(duration, () => {
-                recorder.stop();
+            const stopped = new Promise(resolve => {
+                recorder.onstop = () => {
+                    const blob = new Blob(chunks, { type: recorder.mimeType || 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'zoom-animation.webm';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    resolve();
+                };
             });
+
+            const saveBtn = document.getElementById('saveBtn');
+            const previewBtn = document.getElementById('previewBtn');
+            saveBtn.disabled = true;
+            previewBtn.disabled = true;
+            const originalLabel = saveBtn.textContent;
+            saveBtn.textContent = '⏺️ Spelar in...';
+
+            try {
+                recorder.start();
+                await recordAnimation(duration, fps, videoTrack);
+                recorder.stop();
+                await stopped;
+            } finally {
+                videoTrack.stop();
+                saveBtn.disabled = false;
+                previewBtn.disabled = false;
+                saveBtn.textContent = originalLabel;
+                drawBase();
+            }
         });
     </script>
 </body>
