@@ -180,16 +180,18 @@
         window.addEventListener('mouseup', () => { isDragging = false; });
         window.addEventListener('mouseleave', () => { isDragging = false; });
 
-        // Rendera en enskild frame för en given progress (0..1)
-        function renderFrame(progress) {
+        // Rendera en enskild frame för en given progress (0..1) på valfri target-context.
+        // Standard är main-canvas (för preview); inspelning skickar in en mindre output-canvas
+        // för att avlasta GPU/encoder på svag hårdvara.
+        function renderFrame(progress, targetCtx = ctx, targetW = canvas.width, targetH = canvas.height) {
             const p = progress * progress * (3 - 2 * progress); // Smoothstep
             const currentX = selection.x * p;
             const currentY = selection.y * p;
             const currentW = canvas.width + (selection.w - canvas.width) * p;
             const currentH = canvas.height + (selection.h - canvas.height) * p;
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, currentX, currentY, currentW, currentH, 0, 0, canvas.width, canvas.height);
+            targetCtx.clearRect(0, 0, targetW, targetH);
+            targetCtx.drawImage(img, currentX, currentY, currentW, currentH, 0, 0, targetW, targetH);
         }
 
         // Realtids-preview (tidsbaserad)
@@ -218,27 +220,36 @@
         }
 
         // Deterministisk frame-by-frame-rendering för inspelning.
-        // Garanterar att alla frames (inkl. den helt inzoomade slutframen) hamnar i videon
-        // oavsett CPU-last eller FPS-drops.
-        async function recordAnimation(durationSec, fps, videoTrack) {
+        // Använder rAF + manual frame mode + en separat output-canvas i begränsad storlek,
+        // så även äldre Chromebooks hinner encoda varje frame utan drops.
+        function nextFrame() {
+            return new Promise(r => requestAnimationFrame(() => r()));
+        }
+
+        async function recordAnimation(durationSec, fps, videoTrack, outCtx, outW, outH) {
             const totalFrames = Math.max(2, Math.round(durationSec * fps));
             const frameDelay = 1000 / fps;
+            const pushFrame = () => {
+                if (videoTrack && typeof videoTrack.requestFrame === 'function') {
+                    videoTrack.requestFrame();
+                }
+            };
 
             for (let i = 0; i < totalFrames; i++) {
                 const progress = i / (totalFrames - 1);
-                renderFrame(progress);
-                if (videoTrack && typeof videoTrack.requestFrame === 'function') {
-                    videoTrack.requestFrame();
-                }
+                renderFrame(progress, outCtx, outW, outH);
+                // Vänta på att browsern faktiskt har komponerat frame innan vi pushar den
+                await nextFrame();
+                pushFrame();
+                // Liten paus så encodern hinner med vid hög upplösning / svag CPU
                 await new Promise(r => setTimeout(r, frameDelay));
             }
 
-            // Håll kvar slutframen några extra frames så att inspelaren hinner fånga den
-            for (let i = 0; i < 4; i++) {
-                renderFrame(1);
-                if (videoTrack && typeof videoTrack.requestFrame === 'function') {
-                    videoTrack.requestFrame();
-                }
+            // Håll kvar slutframen några extra frames så inspelaren garanterat fångar den
+            for (let i = 0; i < 6; i++) {
+                renderFrame(1, outCtx, outW, outH);
+                await nextFrame();
+                pushFrame();
                 await new Promise(r => setTimeout(r, frameDelay));
             }
         }
@@ -252,12 +263,25 @@
         document.getElementById('saveBtn').addEventListener('click', async () => {
             if (!img || !selection) return alert("Vänligen markera ett område på bilden först!");
             const duration = parseFloat(document.getElementById('duration').value) || 2;
-            const fps = 60;
+            const fps = 30;
 
             cancelAnimationFrame(animId);
 
+            // Output-canvas med begränsad storlek så encodern hinner med på svag hårdvara.
+            // Behåller bildens proportioner men kapar längsta sidan till MAX_DIM.
+            const MAX_DIM = 1280;
+            const scale = Math.min(1, MAX_DIM / Math.max(canvas.width, canvas.height));
+            // Jämn höjd/bredd är ett krav för många videoencodrar
+            const outW = Math.max(2, Math.floor(canvas.width * scale / 2) * 2);
+            const outH = Math.max(2, Math.floor(canvas.height * scale / 2) * 2);
+
+            const outCanvas = document.createElement('canvas');
+            outCanvas.width = outW;
+            outCanvas.height = outH;
+            const outCtx = outCanvas.getContext('2d');
+
             // captureStream(0) = manuellt frame-läge, vi pushar frames själva via requestFrame()
-            const stream = canvas.captureStream(0);
+            const stream = outCanvas.captureStream(0);
             const videoTrack = stream.getVideoTracks()[0];
 
             // Välj första mimetype som webbläsaren faktiskt stöder
@@ -274,7 +298,9 @@
                 }
             }
 
-            const options = { videoBitsPerSecond: 8000000 };
+            // Bitrate skalad efter upplösning – håller filstorlek och encoder-belastning rimlig
+            const bitrate = Math.min(8_000_000, Math.max(2_000_000, Math.round(outW * outH * fps * 0.1)));
+            const options = { videoBitsPerSecond: bitrate };
             if (mimeType) options.mimeType = mimeType;
 
             let recorder;
@@ -309,7 +335,10 @@
 
             try {
                 recorder.start();
-                await recordAnimation(duration, fps, videoTrack);
+                await recordAnimation(duration, fps, videoTrack, outCtx, outW, outH);
+                // Extra rAF-cykler så de sista pushade framerna garanterat har encodats
+                await nextFrame();
+                await nextFrame();
                 recorder.stop();
                 await stopped;
             } finally {
