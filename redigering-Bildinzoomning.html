@@ -97,7 +97,7 @@
         let bgColor = '#000000'; // Auto-vald bakgrund för letterbox
 
         // Sampla bildens medelluminans och välj svart eller vit bakgrund
-        // som kontrasterar bäst (mörk bild → vita kanter, ljus bild → svarta kanter).
+        // som matchar majoriteten (ljus bild → vita kanter, mörk bild → svarta kanter).
         function computeBgColor(image) {
             try {
                 const s = 32;
@@ -112,7 +112,7 @@
                     lum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
                 }
                 lum /= n;
-                return lum > 127 ? '#000000' : '#ffffff';
+                return lum > 127 ? '#ffffff' : '#000000';
             } catch (e) {
                 return '#000000';
             }
