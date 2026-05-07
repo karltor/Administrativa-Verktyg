@@ -72,6 +72,9 @@
         <label class="checkbox-label">
             <input type="checkbox" id="aspectLock" checked> Lås proportioner
         </label>
+        <label class="checkbox-label">
+            <input type="checkbox" id="preserveAspect"> Behåll originalproportion (fyll sidorna)
+        </label>
         <button id="previewBtn">▶️ Förhandsgranska</button>
         <button id="saveBtn">💾 Spara som WebM</button>
     </div>
@@ -91,6 +94,29 @@
         let isDragging = false;
         let startX, startY;
         let animId = null;
+        let bgColor = '#000000'; // Auto-vald bakgrund för letterbox
+
+        // Sampla bildens medelluminans och välj svart eller vit bakgrund
+        // som kontrasterar bäst (mörk bild → vita kanter, ljus bild → svarta kanter).
+        function computeBgColor(image) {
+            try {
+                const s = 32;
+                const c = document.createElement('canvas');
+                c.width = s; c.height = s;
+                const cx = c.getContext('2d');
+                cx.drawImage(image, 0, 0, s, s);
+                const data = cx.getImageData(0, 0, s, s).data;
+                let lum = 0;
+                const n = data.length / 4;
+                for (let i = 0; i < data.length; i += 4) {
+                    lum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+                }
+                lum /= n;
+                return lum > 127 ? '#000000' : '#ffffff';
+            } catch (e) {
+                return '#000000';
+            }
+        }
 
         // Ladda upp och rita bild
         document.getElementById('upload').addEventListener('change', (e) => {
@@ -103,6 +129,7 @@
                     canvas.width = img.width;
                     canvas.height = img.height;
                     selection = null;
+                    bgColor = computeBgColor(img);
                     drawBase();
                 };
                 img.src = event.target.result;
@@ -185,13 +212,36 @@
         // för att avlasta GPU/encoder på svag hårdvara.
         function renderFrame(progress, targetCtx = ctx, targetW = canvas.width, targetH = canvas.height) {
             const p = progress * progress * (3 - 2 * progress); // Smoothstep
-            const currentX = selection.x * p;
-            const currentY = selection.y * p;
-            const currentW = canvas.width + (selection.w - canvas.width) * p;
-            const currentH = canvas.height + (selection.h - canvas.height) * p;
+            const srcX = selection.x * p;
+            const srcY = selection.y * p;
+            const srcW = canvas.width + (selection.w - canvas.width) * p;
+            const srcH = canvas.height + (selection.h - canvas.height) * p;
 
-            targetCtx.clearRect(0, 0, targetW, targetH);
-            targetCtx.drawImage(img, currentX, currentY, currentW, currentH, 0, 0, targetW, targetH);
+            const preserve = document.getElementById('preserveAspect').checked;
+
+            if (preserve) {
+                // Letterbox/pillarbox: behåll src-aspect inuti target (originalproportionen),
+                // fyll resten med autovald bakgrundsfärg.
+                targetCtx.fillStyle = bgColor;
+                targetCtx.fillRect(0, 0, targetW, targetH);
+
+                const srcAspect = srcW / srcH;
+                const targetAspect = targetW / targetH;
+                let dW, dH;
+                if (srcAspect > targetAspect) {
+                    dW = targetW;
+                    dH = targetW / srcAspect;
+                } else {
+                    dH = targetH;
+                    dW = targetH * srcAspect;
+                }
+                const dX = (targetW - dW) / 2;
+                const dY = (targetH - dH) / 2;
+                targetCtx.drawImage(img, srcX, srcY, srcW, srcH, dX, dY, dW, dH);
+            } else {
+                targetCtx.clearRect(0, 0, targetW, targetH);
+                targetCtx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, targetW, targetH);
+            }
         }
 
         // Realtids-preview (tidsbaserad)
