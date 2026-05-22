@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Reverser (Baklängesvideo)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background-color: #1e1e1e;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+        h1 { color: #fff; margin-bottom: 10px; font-size: 26px; }
+        p { color: #aaa; font-size: 14px; margin-bottom: 25px; }
+        
+        input[type="file"] { display: none; }
+        
+        .file-label {
+            background-color: #3b82f6;
+            color: white;
+            padding: 14px 28px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: inline-block;
+            font-weight: bold;
+            transition: background 0.2s, transform 0.1s;
+            margin-bottom: 20px;
+        }
+        .file-label:hover { background-color: #2563eb; }
+        .file-label:active { transform: scale(0.98); }
+        
+        .status { margin: 15px 0; font-weight: bold; color: #3b82f6; min-height: 20px; }
+        
+        .progress-bar {
+            width: 100%;
+            background-color: #333;
+            border-radius: 20px;
+            overflow: hidden;
+            display: none;
+            margin: 15px 0;
+            height: 12px;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background-color: #10b981;
+            transition: width 0.1s linear;
+        }
+        
+        video {
+            max-width: 100%;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .download-btn {
+            background-color: #10b981;
+            color: white;
+            padding: 14px 28px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: none;
+            font-weight: bold;
+            margin-top: 20px;
+            transition: background 0.2s;
+        }
+        .download-btn:hover { background-color: #059669; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Vänd din video baklänges</h1>
+    <p>Stöder .mp4, .mov och .webm. Processen sker helt lokalt i din webbläsare.</p>
+    
+    <label for="videoInput" class="file-label">Välj videofil</label>
+    <input type="file" id="videoInput" accept="video/mp4,video/webm,video/quicktime">
+    
+    <div class="status" id="statusText">Väntar på fil...</div>
+    
+    <div class="progress-bar" id="progressBar">
+        <div class="progress-fill" id="progressFill"></div>
+    </div>
+
+    <a id="downloadBtn" class="download-btn" href="#" download="baklängesvideo.webm">Ladda ner baklängesvideo</a>
+    
+    <video id="outputVideo" controls></video>
+</div>
+
+<script>
+    const videoInput = document.getElementById('videoInput');
+    const statusText = document.getElementById('statusText');
+    const progressBar = document.getElementById('progressBar');
+    const progressFill = document.getElementById('progressFill');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const outputVideo = document.getElementById('outputVideo');
+
+    videoInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Återställ gränssnittet vid ny fil
+        statusText.innerText = "Läser in video och analyserar bildrutor...";
+        progressBar.style.display = 'block';
+        progressFill.style.width = '0%';
+        downloadBtn.style.display = 'none';
+        outputVideo.style.display = 'none';
+
+        const videoUrl = URL.createObjectURL(file);
+        const video = document.createElement('video');
+        video.src = videoUrl;
+        video.muted = true;
+        video.playsInline = true;
+
+        // Vänta tills videons metadata har laddats (längd, upplösning etc.)
+        video.onloadedmetadata = () => {
+            reverseVideo(video);
+        };
+    });
+
+    function reverseVideo(video) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Sätt samma upplösning på ritytan som originalvideon
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        const duration = video.duration;
+        const fps = 30; // Mål-FPS för den exporterade videon
+        const interval = 1 / fps;
+        let currentTime = duration; // Startar från slutet
+
+        // Fånga strömmen från vår rityta (canvas)
+        const stream = canvas.captureStream(fps);
+        
+        // Välj bästa tillgängliga videoformat för inspelning i webbläsaren
+        let options = { mimeType: 'video/webm;codecs=vp9' };
+        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+            options = { mimeType: 'video/webm;codecs=vp8' };
+        }
+        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+            options = { mimeType: 'video/webm' };
+        }
+
+        const mediaRecorder = new MediaRecorder(stream, options);
+        const chunks = [];
+
+        mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) chunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = () => {
+            const blob = new Blob(chunks, { type: 'video/webm' });
+            const outputUrl = URL.createObjectURL(blob);
+            
+            statusText.innerText = "Klart! Din video är vänd.";
+            statusText.style.color = "#10b981";
+            progressFill.style.width = '100%';
+            
+            downloadBtn.href = outputUrl;
+            downloadBtn.style.display = 'inline-block';
+            
+            outputVideo.src = outputUrl;
+            outputVideo.style.display = 'block';
+        };
+
+        // Starta inspelningen av canvasen
+        mediaRecorder.start();
+
+        // Funktion som hoppar bakåt i videon och ritar upp bildrutorna
+        function processFrame() {
+            if (currentTime <= 0) {
+                // Vi har nått början av videon, stoppa inspelningen
+                mediaRecorder.stop();
+                return;
+            }
+
+            video.currentTime = currentTime;
+            
+            // onseeked triggas när webbläsaren har hoppat till och renderat den exakta sekunden
+            video.onseeked = () => {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Räkna ut och visa framsteg
+                const percent = ((duration - currentTime) / duration) * 100;
+                progressFill.style.width = `${percent}%`;
+                statusText.innerText = `Bearbetar: ${Math.round(percent)}%`;
+
+                // Hoppa bakåt i tiden inför nästa bildruta
+                currentTime -= interval;
+                
+                // En minimal fördröjning så att webbläsaren hinner andas och spela in stabilt
+                setTimeout(processFrame, 5);
+            };
+        }
+
+        // Starta processen
+        processFrame();
+    }
+</script>
+</body>
+</html>
