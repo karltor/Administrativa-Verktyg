@@ -136,10 +136,10 @@
         };
     });
 
-    function reverseVideo(video) {
+    async function reverseVideo(video) {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        
+
         // Sätt samma upplösning på ritytan som originalvideon
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
@@ -147,11 +147,29 @@
         const duration = video.duration;
         const fps = 30; // Mål-FPS för den exporterade videon
         const interval = 1 / fps;
-        let currentTime = duration; // Startar från slutet
 
-        // Fånga strömmen från vår rityta (canvas)
-        const stream = canvas.captureStream(fps);
-        
+        // ---- Fas 1: Extrahera alla bildrutor (baklänges) till minnet ----
+        // Seekning är långsam och oregelbunden. Genom att extrahera först och
+        // koda sedan frikopplar vi den ojämna seekningen från inspelningen,
+        // vilket ger jämn FPS i resultatet i stället för ryck och tappade rutor.
+        const frames = [];
+        for (let t = duration; t > 0; t -= interval) {
+            await seekTo(video, Math.max(0, t));
+            frames.push(await createImageBitmap(video));
+
+            const percent = ((duration - t) / duration) * 50; // extraktion = 0–50 %
+            progressFill.style.width = `${percent}%`;
+            statusText.innerText = `Extraherar bildrutor: ${Math.round(percent)}%`;
+        }
+
+        // ---- Fas 2: Koda bildrutorna i jämn takt ----
+        statusText.innerText = "Kodar baklängesvideo...";
+
+        // captureStream(0) = manuellt läge: vi bestämmer själva exakt när varje
+        // ruta fångas via requestFrame(), så inspelaren inte samplar tomma rutor.
+        const stream = canvas.captureStream(0);
+        const track = stream.getVideoTracks()[0];
+
         // Välj bästa tillgängliga videoformat för inspelning i webbläsaren
         let options = { mimeType: 'video/webm;codecs=vp9' };
         if (!MediaRecorder.isTypeSupported(options.mimeType)) {
@@ -171,50 +189,55 @@
         mediaRecorder.onstop = () => {
             const blob = new Blob(chunks, { type: 'video/webm' });
             const outputUrl = URL.createObjectURL(blob);
-            
+
+            frames.forEach(f => f.close && f.close());
+
             statusText.innerText = "Klart! Din video är vänd.";
             statusText.style.color = "#10b981";
             progressFill.style.width = '100%';
-            
+
             downloadBtn.href = outputUrl;
             downloadBtn.style.display = 'inline-block';
-            
+
             outputVideo.src = outputUrl;
             outputVideo.style.display = 'block';
         };
 
-        // Starta inspelningen av canvasen
         mediaRecorder.start();
 
-        // Funktion som hoppar bakåt i videon och ritar upp bildrutorna
-        function processFrame() {
-            if (currentTime <= 0) {
-                // Vi har nått början av videon, stoppa inspelningen
-                mediaRecorder.stop();
-                return;
-            }
+        // Spela upp rutorna mot inspelaren med jämn realtidstakt. Inspelaren
+        // tidsstämplar mot väggklockan, så vi håller varje ruta exakt interval-tid.
+        const startTime = performance.now();
+        const intervalMs = interval * 1000;
 
-            video.currentTime = currentTime;
-            
-            // onseeked triggas när webbläsaren har hoppat till och renderat den exakta sekunden
-            video.onseeked = () => {
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                
-                // Räkna ut och visa framsteg
-                const percent = ((duration - currentTime) / duration) * 100;
-                progressFill.style.width = `${percent}%`;
-                statusText.innerText = `Bearbetar: ${Math.round(percent)}%`;
+        for (let i = 0; i < frames.length; i++) {
+            ctx.drawImage(frames[i], 0, 0, canvas.width, canvas.height);
+            track.requestFrame();
 
-                // Hoppa bakåt i tiden inför nästa bildruta
-                currentTime -= interval;
-                
-                // En minimal fördröjning så att webbläsaren hinner andas och spela in stabilt
-                setTimeout(processFrame, 5);
-            };
+            const percent = 50 + (i / frames.length) * 50; // kodning = 50–100 %
+            progressFill.style.width = `${percent}%`;
+            statusText.innerText = `Kodar: ${Math.round(percent)}%`;
+
+            // Vänta tills nästa ruta ska visas, mätt mot startpunkten så att
+            // takten inte glider iväg över tid.
+            const targetTime = startTime + (i + 1) * intervalMs;
+            const wait = targetTime - performance.now();
+            if (wait > 0) await sleep(wait);
         }
 
-        // Starta processen
-        processFrame();
+        mediaRecorder.stop();
+    }
+
+    // Söker till en given tidpunkt och väntar tills bildrutan faktiskt renderats.
+    function seekTo(video, time) {
+        return new Promise((resolve) => {
+            video.onseeked = () => resolve();
+            video.currentTime = time;
+        });
+    }
+
+    function sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
     }
 </script>
 </body>
